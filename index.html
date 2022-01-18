@@ -29,8 +29,8 @@
                     link</a></span>. Good luck and have fun!
         </label>
         <hr>
-        <button type="button" class="btn btn-warning btn-shadow">Create Game</button>
-        <button type="button" class="btn btn-warning btn-shadow">Join Game</button>
+        <button type="button" data-toggle="modal" data-target="#modal-create" class="btn btn-warning btn-shadow">Create Game</button>
+        <button type="button" data-toggle="modal" data-target="#modal-join"class="btn btn-warning btn-shadow">Join Game</button>
     </form>
 
     <!-- Homepage Modals -->
@@ -71,42 +71,75 @@
 
         </div>
     </div>
-    
-    
+
+
     <!-- End Modal Info -->
     <!-- Begin Create Game Modal -->
-    <div class="modal fade" id="modalLoginAvatar" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
-  aria-hidden="true">
-  <div class="modal-dialog cascading-modal modal-avatar modal-sm" role="document">
-    <!--Content-->
-    <div class="modal-content">
+    <div class="modal fade" id="modal-create" tabindex="-1" role="dialog" aria-labelledby="modal-create"
+        aria-hidden="true">
+        <div class="modal-dialog cascading-modal modal-avatar modal-sm" role="document">
+            <!--Content-->
+            <div class="modal-content">
 
-      <!--Header-->
-      <div class="modal-header">
-        <img src="https://mdbootstrap.com/img/Photos/Avatars/img%20%281%29.webp" alt="avatar" class="rounded-circle img-responsive">
-      </div>
-      <!--Body-->
-      <div class="modal-body text-center mb-1">
+                <!--Header-->
+                <div id="avatar-content" class="modal-header">
+                    <img id="avatar-img" src="avatar.png" alt="avatar"
+                        class="rounded-circle img-responsive">
+                </div>
+                <!--Body-->
+                <div class="modal-body text-center mb-1">
 
-        <h5 class="mt-1 mb-2">Maria Doe</h5>
+                    <div class="form-field">
+                        <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter Username</label>
+                        <input type="text" id="form29"
+                            class="form-control form-control-sm validate ml-0">
+                    </div>
 
-        <div class="md-form ml-0 mr-0">
-          <input type="password" type="text" id="form29" class="form-control form-control-sm validate ml-0">
-          <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter password</label>
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-warning btn-shadow">Create Game</button>
+                    </div>
+                </div>
+
+            </div>
         </div>
-
-        <div class="text-center mt-4">
-          <button class="btn btn-cyan mt-1">Login <i class="fas fa-sign-in ml-1"></i></button>
-        </div>
-      </div>
-
     </div>
-    <!--/.Content-->
-  </div>
-</div>
-<!-- End Create Game Modal -->
-<!-- Begin Join Game Modal -->
-<!-- End Create Game Modal -->
+    <!-- End Create Game Modal -->
+    <!-- Begin Join Game Modal -->
+    <div class="modal fade" id="modal-join" tabindex="-1" role="dialog" aria-labelledby="modal-create"
+        aria-hidden="true">
+        <div class="modal-dialog cascading-modal modal-avatar modal-sm" role="document">
+            <!--Content-->
+            <div class="modal-content">
+
+                <!--Header-->
+                <div id="avatar-content" class="modal-header">
+                    <img id="avatar-img" src="avatar.png" alt="avatar"
+                        class="rounded-circle img-responsive">
+                </div>
+                <!--Body-->
+                <div class="modal-body text-center mb-1">
+
+                    <div class="form-field">
+                        <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter Roomname</label>
+                        <input type="password" type="text" id="form29"
+                            class="form-control form-control-sm validate ml-0">
+                    </div>
+
+                    <div class="form-field">
+                        <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter Username</label>
+                        <input type="password" type="text" id="form29"
+                            class="form-control form-control-sm validate ml-0">
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-warning btn-shadow">Join Game</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <!-- End Create Game Modal -->
     <!-- Homepage Modals -->
     <!-- End Homepage -->
 

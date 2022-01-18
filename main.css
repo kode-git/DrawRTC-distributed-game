@@ -37,6 +37,12 @@ body {
     text-align: center
 }
 
+#avatar-img {
+    width: 100px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
 /* --------------- */
 /*  General Style  */
 /* --------------- */
