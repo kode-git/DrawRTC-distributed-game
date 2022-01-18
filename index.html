@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="main.css" type="text/css">
+</head>
+
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <!-- Navbar content -->
+        <span class="navbar-brand">Quick, DrawRTC</span>
+        <ul class="nav navbar-nav navbar-right">
+            <li class="nav-item text-white info-el ">
+                <a style="color: #ffc107;" data-toggle="modal" data-target="#modal-info"> Info </a>
+            </li>
+        </ul>
+    </nav>
+    <!-- Homepage -->
+    <div id="homepage-content">
+        <img id="background-image" src="background.png">
+    </div>
+
+    <form id="form-home">
+        <label id="subtitle-home">
+            Annoying to play with the IA? Try the game with your friends and get the highest score! More info about game
+            rules in the <span data-toggle="modal" data-target="#modal-info" class="info-el"><a>following
+                    link</a></span>. Good luck and have fun!
+        </label>
+        <hr>
+        <button type="button" class="btn btn-warning btn-shadow">Create Game</button>
+        <button type="button" class="btn btn-warning btn-shadow">Join Game</button>
+    </form>
+
+    <!-- Homepage Modals -->
+
+    <!-- Modal Info -->
+    <div id="modal-info" class="modal fade bd-example-modal-ex-lg" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Game Info</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>The game consists of a challenge with your friends. There is one painter and one or more
+                        competitors for each game session. The painter needs to draw the upright word to guess in the
+                        distributed paper and competitors needs to guess the object before the opponents. <u>The game
+                            continues since one of the competitors didn't obtain 10 points or when the painter click on
+                            the end button.</u></p>
+                    <hr>
+                    <h4>Painter role</h4>
+                    <p><b>The word to guess is on the upright of the painter interface</b>. There are no time limits for
+                        him, he can draw and cancel scribbles on the paper whenever. The scoring system doesn't include
+                        him for the game session, but he can arbitrarily decide to stop the game, fix the final scores
+                        and, consequently, define the winner of the game!</p>
+                    <hr>
+                    <h4>Competitors role</h4>
+                    <p>Competitors need to guess what the painter is drawing before the opponents. Each time you succeed
+                        in guessing before the others, <b>you receive 1 point</b>. The proposals made to the game are
+                        written in chat and viewed by everyone. When the word is guessed, each player will see a banner
+                        with the notification of the round winner.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default modal-close" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    
+    <!-- End Modal Info -->
+    <!-- Begin Create Game Modal -->
+    <div class="modal fade" id="modalLoginAvatar" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog cascading-modal modal-avatar modal-sm" role="document">
+    <!--Content-->
+    <div class="modal-content">
+
+      <!--Header-->
+      <div class="modal-header">
+        <img src="https://mdbootstrap.com/img/Photos/Avatars/img%20%281%29.webp" alt="avatar" class="rounded-circle img-responsive">
+      </div>
+      <!--Body-->
+      <div class="modal-body text-center mb-1">
+
+        <h5 class="mt-1 mb-2">Maria Doe</h5>
+
+        <div class="md-form ml-0 mr-0">
+          <input type="password" type="text" id="form29" class="form-control form-control-sm validate ml-0">
+          <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter password</label>
+        </div>
+
+        <div class="text-center mt-4">
+          <button class="btn btn-cyan mt-1">Login <i class="fas fa-sign-in ml-1"></i></button>
+        </div>
+      </div>
+
+    </div>
+    <!--/.Content-->
+  </div>
+</div>
+<!-- End Create Game Modal -->
+<!-- Begin Join Game Modal -->
+<!-- End Create Game Modal -->
+    <!-- Homepage Modals -->
+    <!-- End Homepage -->
+
+
+    <!-- Lobby Room -->
+    <div id="lobby-content">
+        Lobby
+    </div>
+    <!-- End Homepage -->
+    <!-- Game room -->
+    <div id="game room">
+        Game
+    </div>
+    <!-- End Homepage -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+    <script src="index.js"></script>
+    <script src="peer.js"></script>
+    <script src="game.js"></script>
+</body>
+
+</html>

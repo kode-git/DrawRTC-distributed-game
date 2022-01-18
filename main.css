@@ -1,0 +1,59 @@
+body {
+  font-family: monospace;
+  font-size: 1.4em;
+}
+
+/* --------------- */
+/*     Homepage    */
+/* --------------- */
+
+#background-image {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 60%;
+}
+
+#form-home {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 60%;
+}
+
+.info-el {
+    text-decoration:  underline;
+    color: #ffc107;
+}
+
+.info-el:hover {
+    color: #fce08d;
+}
+#subtitle-home {
+    text-align: center
+}
+
+#form-home {
+    text-align: center
+}
+
+/* --------------- */
+/*  General Style  */
+/* --------------- */
+
+.btn-shadow {
+    box-shadow: 3px 3px rgb(184, 181, 181);
+}
+
+.btn-shadow:active {
+    box-shadow: 3px 3px rgb(184, 181, 181);
+}
+
+.btn-shadow:hover {
+    opacity: 0.8;
+}
+
+.modal-close:hover {
+    opacity: 0.9;
+    color: black;
+}
