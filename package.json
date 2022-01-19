@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "bootstrap-icons": "^1.7.2"
+    "bootstrap-icons": "^1.7.2",
+    "simple-peer": "^9.11.0",
+    "sweetalert": "^2.1.2"
   }
 }

@@ -33,6 +33,10 @@
             Game</button>
         <button type="button" data-toggle="modal" data-target="#modal-join" class="btn btn-warning btn-shadow">Join
             Game</button>
+        <br>
+        <label id="copy">&copy; Idea from Google, project by <a style="color:#ffc107; text-decoration: underline;"
+                href="https://www.github.com/kode-git">Mario Sessa</a></label>
+
     </form>
 
     <!-- Homepage Modals -->
@@ -92,11 +96,12 @@
 
                     <div class="form-field">
                         <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter Username</label>
-                        <input type="text" id="form29" class="form-control form-control-sm validate ml-0">
+                        <input id="create-username" type="text" id="form29"
+                            class="form-control form-control-sm validate ml-0">
                     </div>
 
                     <div class="text-center mt-4">
-                        <button type="button" class="btn btn-warning btn-shadow">Create Game</button>
+                        <button id="create-button" type="button" class="btn btn-warning btn-shadow">Create Game</button>
                     </div>
                 </div>
 
@@ -119,19 +124,19 @@
                 <div class="modal-body text-center mb-1">
 
                     <div class="form-field">
-                        <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter Roomname</label>
-                        <input type="password" type="text" id="form29"
+                        <label data-error="wrong" data-success="right" for="form30" class="ml-0">Enter Roomname</label>
+                        <input type="password" type="text" id="form30"
                             class="form-control form-control-sm validate ml-0">
                     </div>
 
                     <div class="form-field">
-                        <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter Username</label>
-                        <input type="password" type="text" id="form29"
+                        <label data-error="wrong" data-success="right" for="form31" class="ml-0">Enter Username</label>
+                        <input type="password" type="text" id="form31"
                             class="form-control form-control-sm validate ml-0">
                     </div>
 
                     <div class="text-center mt-4">
-                        <button type="button" class="btn btn-warning btn-shadow">Join Game</button>
+                        <button id="join-button" type="button" class="btn btn-warning btn-shadow">Join Game</button>
                     </div>
                 </div>
 
@@ -140,25 +145,19 @@
     </div>
     <!-- End Create Game Modal -->
     <!-- Homepage Modals -->
-    <footer class="bg-dark text-center text-lg-start">
-        <!-- Copyright -->
-        <div class="text-light text-center p-3" style="background-color: rgba(0, 0, 0, 0.2);">
-          © 2022 Idea from Google, project by <a style="color:#ffc107" href="https://www.github.com/kode-git">Mario Sessa</a>
-        </div>
-        <!-- Copyright -->
-      </footer>
     <!-- End Homepage -->
-
-
     <!-- Lobby Room -->
     <div id="lobby-content">
         Lobby
     </div>
     <!-- End Homepage -->
     <!-- Game room -->
+    <!-- General staff -->
+
     <div id="game room">
         Game
     </div>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
         integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
         crossorigin="anonymous"></script>
