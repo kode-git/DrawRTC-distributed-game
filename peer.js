@@ -22,8 +22,10 @@ var stateConnection; // state of the connection
 var roomId; // Peer will connect to this roomId
 // Default openess connection to set default port and IP (not signalling) for P2P connection
 var socket = io.connect() // socket opening
-createRoom = document.getElementById('create-button')
+createRoom = document.getElementById('create-button') // create button
 createRoom.addEventListener("click", makeLobby); // create Lobby as the initializator
+joinRoom = document.getElementById('join-button') // join button
+joinRoom.addEventListener("click", joinLobby) // join in an existing lobby
 
 // TO-DO: Setting Id by request input or randomly (?)
 function settingId(){
@@ -38,15 +40,36 @@ socket.on("init", function (room) {
   isInitiator = true;
 });
 
+// Error handler for the alreadyExists game room during the create mode
+socket.on("alreadyExists", function(room){
+  console.log("Game " + room  + " already exists, need to retry create a new one")
+  Swal.fire({
+    icon: 'error',
+    title: 'Oops...',
+    text: 'Room ' + room + ' already exists, retry to create a new one',
+    confirmButtonColor: '#f0ad4e',
+  })
+})
 
-// procedure to estabilish a connection room to make a lobby
+// Error handler for the joining on a game room when it doesn't exist
+socket.on("joinError", function(room){
+  console.log("Room " + room + ", do not exist, you must create it!")
+  Swal.fire({
+    icon: 'error',
+    title: 'Oops...',
+    text: 'Game ' + room + ' doesn\'t exists, please copy the correct id or create a new game',
+    confirmButtonColor: '#f0ad4e',
+  })
+})
+
+// Procedure to estabilish a connection room to make a lobby
 function makeLobby(){
-   username = document.getElementById("create-username")
+   username = document.getElementById("create-username").value
    if(username == "" || username == null){
     Swal.fire({
         icon: 'error',
         title: 'Oops...',
-        text: 'You need to insert data before submit!',
+        text: 'You need to insert username before create a new game!',
         confirmButtonColor: '#f0ad4e',
       })
     return 0; // Avoid connection making for no data issue
@@ -56,13 +79,32 @@ function makeLobby(){
    if(!stateConnection){
      // peer is not connected yet
      // do signaling
-     socket.emit("createOrJoin", roomId, username)
-     sendMessage("AddingUser", roomId)
+     socket.emit("create", roomId, username)
+     sendMessage("Adding User in ", roomId)
      if(isInitiator){
        initConnection();
      }
    }
+}
+
+// Function to join in an existing lobby
+function joinLobby(){
+  username = document.getElementById("join-username").value
+  roomId = document.getElementById("join-room").value
+  if(username == "" || username == null || roomId == "" || roomId == null){
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: 'You need to insert room and username before the submit',
+      confirmButtonColor: '#f0ad4e',
+    })
+    return 0
   }
+  if(!stateConnection && !isInitiator){
+    socket.emit("join", roomId, username)
+    sendMessage("Join User in ", roomId)
+  }
+}
 
 
 // Making a RTC Peer Connection with Offer and Answer channel setting

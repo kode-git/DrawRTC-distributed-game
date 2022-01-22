@@ -26,8 +26,8 @@ var io = socketIO(server)
 
 io.sockets.on("connection", function(socket){
 
-    socket.on("createOrJoin", function(room, username){
-        // getting users in the rooms
+    socket.on("create", function(room, username){
+        // control of possible users in the room (if any the room already exists)
         var users = io.sockets.adapter.rooms.get(room) 
         var numClients;
         if(!users){
@@ -35,15 +35,34 @@ io.sockets.on("connection", function(socket){
         } else {
             numClients = users.size
         }
-        console.log('Number of users in ' + room + ", is:" + numClients)
         if(!numClients){
             // room is void, the client is making a new one
             // join the room
             socket.join(room)
             // make the client as the initiator
             socket.emit("init", room, socket.id)
+            numClients = io.sockets.adapter.rooms.get(room).size
+            console.log('First user in ' + room +' is: ' + socket.id + " with username: " + username + ", total number of clients: " + numClients)
         } else {
-            // there is some people in the room, client needs to join
+            // there is already a room created with this id, we need to be sure that there is no clone
+            socket.emit('alreadyExists', room, socket.id)
+            console.log('Room ' + room + " already exists, error propagation to the client") 
+        }
+    })
+
+    socket.on("join", function(room, username){
+        // control if the room is not new
+        var users = io.sockets.adapter.rooms.get(room)
+        if(!users){
+            // error, the client is trying to enter in a new room with no create mode
+            socket.emit("joinError", room, socket.id)
+        } else {
+            // room with one or more clients connected, good one for joining 
+            var numClients = users.size
+            console.log('Current players in the room: ' + numClients)
+            socket.join(room)
+            console.log('Joining ' + username + ' in the room ' + room + ", total clients:" + io.sockets.adapter.rooms.get(room).size) 
+            socket.emit('joined', room, socket.id)
         }
     })
 })
