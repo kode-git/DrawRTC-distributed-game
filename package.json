@@ -1,7 +1,11 @@
 {
   "dependencies": {
     "bootstrap-icons": "^1.7.2",
+    "consolidate": "^0.16.0",
+    "express": "^4.17.2",
+    "mustache": "^4.2.0",
     "simple-peer": "^9.11.0",
+    "socket.io": "^4.4.1",
     "sweetalert": "^2.1.2"
   }
 }

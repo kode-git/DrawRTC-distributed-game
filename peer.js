@@ -18,6 +18,7 @@ var isInitiator; // if the user is the creator and initial painter of the game
 var TURNReady; // if the TURN communication setup is done
 var offerChannel; // offerer channel
 var answerChannel; // answer channel
+var roomId; // Peer will connect to this roomId
 // Default openess connection to set default port and IP (not signalling) for P2P connection
 var socket = io.connect() // socket opening
 createRoom = document.getElementById('create-button')

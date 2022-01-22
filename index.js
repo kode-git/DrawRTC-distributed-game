@@ -1,0 +1,1 @@
+// this script is an utility one for the front-end DOM management not associated with peers connection (peer.js).
