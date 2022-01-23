@@ -1,6 +1,7 @@
 body {
   font-family: monospace;
   font-size: 1.4em;
+  text-align: center
 }
 
 /* --------------- */
@@ -54,42 +55,119 @@ body {
 /*      Lobby      */
 /* --------------- */
 
-#lobby-content{
-    height: 100%;
-    width: 100%;
+#lobby-background {
+    margin-top: 100px;
 }
-#lobby-background{
-    background-color:#ffc107
+
+#subtitle-lobby{
+    text-align: center;
 }
+
 #title-lobby{
     margin: auto;
     width: 50%;
     color: black;
     padding: 10px;
+    font-family: "Sedgwick Ave";
+    font-size: xx-large;
 }
 
 #lobby-name{
     font-style: bold;
+    font-family: monospace;
+    background-color: white;
+    padding: 10px 10px;
+    border-color: black;
+    border-radius: 10px;
+    font-size: x-large;
+    border-style: solid;
+    border-width: 2px;
+    box-shadow: 5px 10px;
+
 }
 
+#lobby-name:hover{
+    box-shadow: 2.5px 5px;
+}
+
+#lobby-name:active{
+    border-color:black;
+}
+
+#user-list{
+    border-color: black;
+    box-shadow: 1.5px 1.5px black;
+    border-radius: 10px;
+    resize: none;
+    text-align: center;
+
+}
+
+#lobby-button, #lobby-exit-button{
+    background-color: white;
+    border-radius: 10px;
+    border-color: black;
+    border-style: solid;
+    border-width: 2px;
+    box-shadow: 5px 7px rgb(0, 0, 0);
+}
+
+#lobby-button:hover, #lobby-exit-button:hover{
+    background-color: white;
+    border-radius: 10px;
+    border-color: black;
+    border-style: solid;
+    border-width: 2px;
+    box-shadow: 2.5px 3.5px rgb(0, 0, 0);
+}
+
+#lobby-button:active, #lobby-exit-button:active{
+    text-decoration: underline;
+}
 
 /* --------------- */
 /*  General Style  */
 /* --------------- */
 
 .btn-shadow {
-    box-shadow: 3px 3px rgb(184, 181, 181);
-}
-
-.btn-shadow:active {
-    box-shadow: 3px 3px rgb(184, 181, 181);
+    box-shadow: 5px 7px rgb(184, 181, 181);
 }
 
 .btn-shadow:hover {
-    opacity: 0.8;
+    box-shadow: 2.5px 3.5px rgb(184, 181, 181);
 }
 
 .modal-close:hover {
     opacity: 0.9;
     color: black;
 }
+
+
+/* ------------------------ */
+/*  Rendering Google Icons  */
+/* ------------------------ */
+
+.material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 18px;  /* Preferred icon size */
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+  
+    /* Support for all WebKit browsers. */
+    -webkit-font-smoothing: antialiased;
+    /* Support for Safari and Chrome. */
+    text-rendering: optimizeLegibility;
+  
+    /* Support for Firefox. */
+    -moz-osx-font-smoothing: grayscale;
+  
+    /* Support for IE. */
+    font-feature-settings: 'liga';
+  }

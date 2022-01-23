@@ -26,71 +26,59 @@ var io = socketIO(server)
 
 io.sockets.on("connection", function (socket) {
 
-    socket.on('broadcast', function (message, room) {
-        if (message == 'add') {
-            // adding to a room
-            console.log('Adding message received in room: ' + room)
-            socket.in(room).emit("add", room)
-        }
-        else if (message.type == 'offer') {
-            // Offer for P2P connection
-            console.log('Offer message received in room: ' + room)
-            socket.in(room).emit("offer", message, room)
-        } else if (message.type == "answer") {
-            // Answer to an offer in P2P connection
-            console.log('Answer message received in room: ' + room)
-            socket.in(room).emit("answer", message, room)
-        } else if (message.type == "candidate") {
-            // ICE Candidate management
-            console.log('Candidate message received in room: ' + room)
-            socket.in(room).emit("candidate", message, room)
-        } else if (message == 'close') {
-            console.log('Close message received in room: ' + room)
-            socket.in(room).emit('leave', message, room)
-        }
-    })
-
+    
+    // Creating handler for the create a new room from the username
     socket.on("create", function (room, username) {
-        // control of possible users in the room (if any the room already exists)
+        // checking if the room is void
         var users = io.sockets.adapter.rooms.get(room)
-        var numClients;
-        if (!users) {
-            numClients = 0;
-        } else {
-            numClients = users.size
-        }
-        if (!numClients) {
-            // room is void, the client is making a new one
-            // join the room
+        if(!users){
+            // room is void, you can make a new one
+            // adding the user and wait for connection
             socket.join(room)
-            // make the client as the initiator
-            socket.emit("init", room, socket.id)
-            numClients = io.sockets.adapter.rooms.get(room).size
-            console.log('First user in ' + room + ' is: ' + socket.id + " with username: " + username + ", total number of clients: " + numClients)
+            socket.emit('init', room, socket.id)
+            console.log('Room ' +  room + " created by " + username + ", total users in the room: " + io.sockets.adapter.rooms.get(room).size)
         } else {
-            // there is already a room created with this id, we need to be sure that there is no clone
+            // sending the error to the socket who made the request
             socket.emit('alreadyExists', room, socket.id)
-            console.log('Room ' + room + " already exists, error propagation to the client")
         }
     })
 
+    // Joining handler for the join in an existing room of the username
     socket.on("join", function (room, username) {
-        // control if the room is not new
+        // checking if the room exists
         var users = io.sockets.adapter.rooms.get(room)
-        if (!users) {
-            // error, the client is trying to enter in a new room with no create mode
-            socket.emit("joinError", room, socket.id)
-        } else {
-            // room with one or more clients connected, good one for joining 
-            var numClients = users.size
-            console.log('Current players in the room: ' + numClients)
+        if(users){
+            // room is valid
+            var clients = new Array()
+            for (var el of users.values()){
+                clients.push(el)
+            }
             socket.join(room)
-            console.log('Joining ' + username + ' in the room ' + room + ", total clients:" + io.sockets.adapter.rooms.get(room).size)
-            socket.to(room).emit('joined', room, socket.id)
+            console.log(username + " joined in the room" + room + ", total users: " + io.sockets.adapter.rooms.get(room).size)
+            // Passing clients of the room to the new one for the answer management
+            socket.emit('joined', room, clients, socket.id)
+            // Passing the new one to the other clients
+            socket.in(room).emit('new', room, socket.id)
+        } else {
+            // sending error to the client who try to join in a void room
+            socket.emit('joinError', room)
         }
     })
 
+    // Close handler for the leaving of the username which owns the socket
     socket.on('close', function (room) {
-        socket.to(room).emit('leave', socket.id)
+        try{
+            console.log("Client " + socket.id  + " is leaving")
+            socket.leave(room)
+        } catch(e){
+            socket.to(room).emit('leave', room, socket.id)
+        }
+    })
+
+    socket.on("message", function(message, room){
+        console.log(message)
+        if(message.type == "offer"){
+            console.log('Offer catched for ' + room + " at the user joined ") 
+        }
     })
 })
