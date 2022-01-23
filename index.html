@@ -5,6 +5,9 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Quick, DrawRTC</title>
+    <!-- Google Icons and Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link href="https://fonts.googleapis.com/css?family=Sedgwick+Ave:400" rel="stylesheet" type="text/css">
     <meta itemprop="name" content="Quick, DrawRTC!">
     <meta itemprop="description"
         content="Annoying to play with the IA? Try the game with your friends and get the highest score! More info about game rules in the following link. Good luck and have fun!">
@@ -70,7 +73,7 @@
                         </div>
 
                         <div class="text-center mt-4">
-                            <button id="create-button" type="button" class="btn btn-warning btn-shadow" >Create
+                            <button id="create-button" type="button" class="btn btn-warning btn-shadow">Create
                                 Game</button>
                         </div>
                     </div>
@@ -108,8 +111,10 @@
                         </div>
 
                         <div class="text-center mt-4">
-                            <button id="join-button" type="button" class="btn btn-warning btn-shadow" data-dismiss="#modal-join">Join Game</button>
+                            <button id="join-button" type="button" class="btn btn-warning btn-shadow"
+                                data-dismiss="#modal-join">Join Game</button>
                         </div>
+
                     </div>
 
                 </div>
@@ -122,12 +127,31 @@
     <!-- Lobby Room -->
     <div id="lobby-content">
         <div id="lobby-background">
-            <div id="title-lobby">Lobby Room: 
-                <span id="lobby-name"></span> <!-- TODO: It is a dynamic content-->
+            <div id="title-lobby">Lobby Room:
+                    <button id="lobby-name" data-toggle="tooltip" data-placement="top" title="Share the link!"></button> <!-- TODO: It is a dynamic content-->
             </div>
         </div>
+        <form id="form-home">
+            <label id="subtitle-lobby">
+                <hr>
+                Game is starting soon, you need to wait minimum 3 players to enjoy the game. Click the "Ready" button
+                and have fun!
+            </label>
+            <textarea id="user-list" rows="10" cols="25" readonly="true">Players:
+            </textarea>
+            <hr>
+            <button type="button" id="lobby-button" class="btn btn-warning"><i class="material-icons">
+                    done
+                </i> Ready</button>
+            <button type="button" id="lobby-exit-button" class="btn btn-warning"><i class="material-icons">
+                    logout
+                </i> Exit</button>
+            <br><br>
+            <label id="copy">&copy; Idea from Google, project by <a style="text-decoration: underline; color:black"
+                    href="https://www.github.com/kode-git">Mario Sessa</a></label>
+        </form>
     </div>
-    <!-- End Homepage -->
+    <!-- End Lobby -->
     <!-- Game room -->
 
     <div id="game-content">
@@ -146,7 +170,7 @@
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>The game consists of a challenge with your friends. There is one painter and one or more
+                    <p>The game consists of a challenge with your friends. There is one painter and minimum two or more
                         competitors for each game session. The painter needs to draw the upright word to guess in
                         the
                         distributed paper and competitors needs to guess the object before the opponents. <u>The
