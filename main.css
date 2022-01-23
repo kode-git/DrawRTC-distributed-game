@@ -51,6 +51,27 @@ body {
 
 
 /* --------------- */
+/*      Lobby      */
+/* --------------- */
+
+#lobby-content{
+    height: 100%;
+    width: 100%;
+}
+#lobby-background{
+    background-color:#ffc107
+}
+#title-lobby{
+    margin: auto;
+    width: 50%;
+    color: black;
+    padding: 10px;
+}
+
+#lobby-name{
+    font-style: bold;
+}
+
 
 /* --------------- */
 /*  General Style  */
