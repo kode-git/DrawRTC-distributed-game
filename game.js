@@ -1,0 +1,1 @@
+// This script is for game management, connections making is in peer.js

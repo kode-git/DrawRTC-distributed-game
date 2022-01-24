@@ -1,4 +1,5 @@
 
+
 // using some of the most common STUN Servers to retrieve our public IP and port
 const configuration = {
   'iceServers': [{
@@ -15,10 +16,11 @@ const configuration = {
 
 var roomId; // Mesh connections on P2P environment
 var socket = io.connect() // socket opening
-var socketId; // your own id
 var _username; // Username of the player
-var socketIds = new Array() // client id for PeerConnections
-var connections = new Map(); // map of socketIds : PeerConnections
+var peerId; // your own id, the owned peer is not included in peers
+var peer;
+var ids = new Array() // peer id in the mesh
+var peers = new Map(); // hash for mapping peer id with peers [ peerId : peerObject ]
 var isInitiator; // identify if the current client is the creator of the room
 createRoom = document.getElementById('create-button') // create button
 createRoom.addEventListener("click", createGame); // create Lobby as the initializator
@@ -80,12 +82,17 @@ socket.on('init', function (room, client) {
   console.log('Room: ' + room + " is created by " + _username)
   isInitiator = true
   roomId = room
+  peerId = client
+  createPeerConnection(client)
   // going to the lobby and waiting for new users
   toggleLobby(room, _username)
+  // peer are not able here because the creator is alone in the room
 })
 
 socket.on("joined", function (room, players, id) {
   console.log('Your id: ' + id)
+  peerId = id; 
+  roomId = room;
   console.log('Current players:')
   for (let i = 0; i < players.length; i++) {
     console.log('User ' + i + ': ' + players[i])
@@ -93,25 +100,25 @@ socket.on("joined", function (room, players, id) {
   roomId = room
   toggleLobby(room, _username)
   // TO-DO: Update list of names after connection
+  // TO-DO: Define your own peer with the id passed
+  if(!isInitiator){
+    createPeerConnection(id)
+  }
+
+  // TO-DO: make a new peer for each of player (add it in the peers collection)
 })
 
 socket.on('new', function (room, client) {
-  console.log('Client ' + client + " joined in the room " + room)
-  socketIds.push(client) // pushing the client id
-  roomId = room // setting room in case it isn't
-  // making a new Peer Connection
-  const peerConnection = new RTCPeerConnection(configuration);
-  connections.set(client, peerConnection)
-
-  // create an offer
-  // Function to set the local description and send it via signaling
-  function setLocalAndSendMessage(sessionDescription) {
-    peerConnection.setLocalDescription(sessionDescription);
-    console.log("setLocalAndSendMessage sending message", sessionDescription);
-    sendMessage(sessionDescription, room);
+  // making a new Peer Connection with the client
+  if(peer == null){
+    // illegal peer
+    console.log('Error: Illegal access in the room')
+  } else {
+    console.log('Client ' + client + " joined in the room " + room)
+    ids.push(client) // pushing the client id
+    roomId = room // setting room in case it isn't
+    addPeerConnection(client);
   }
-
-  peerConnection.createOffer(setLocalAndSendMessage);
 })
 
 socket.on('leave', function (room, client) {
@@ -122,13 +129,51 @@ socket.on('leave', function (room, client) {
 /*  Peers Functions  */
 /* ----------------- */
 
-//Function to send message in a room
-function sendMessage(message, room) {
-  console.log("Client sending message: ", message, room);
-  socket.emit("message", message, room);
+// Making your own peer 
+function createPeerConnection(id){
+
+  console.log('Creation of peer connection')
+  if(peer != null){
+    console.log('Peer already created')
+    return 0
+  }
+  peer = new Peer(id, config=configuration)
+ 
+  // Peer handlers 
+  // Event handler to check id
+  peer.on('open', function(id){
+    console.log('Open handler: your own id for peer is: ' + id)
+  })
+
+  peer.on("connection", function(connection){
+    connection.on('open', function(){
+      console.log('Adding new connection with the peer: '  + peerId)
+    })
+
+    connection.on('data', function(data){
+      console.log('Data received: ' + data)
+      connection.send('Hello')
+    })
+  })
+
+  console.log('Current own peer: ')
+  console.log(peer)
+
+
 }
 
+// Adding of a new connection for your peer
+function addPeerConnection(id){
+  var connection = peer.connect(id)
+  connection.on('open', function(){
+    connection.send('hi')
+  })
 
+  connection.on('data', function(data){
+    console.log(('Data received: ' + data))
+  })
+
+}
 
 
 /* ----------------- */
