@@ -19,8 +19,9 @@ var socket = io.connect() // socket opening
 var _username; // Username of the player
 var peerId; // your own id, the owned peer is not included in peers
 var peer;
+var usernames = new Map(); // hash for mapping peer id with their own usernames [peerId : username ]
 var ids = new Array() // peer id in the mesh
-var peers = new Map(); // hash for mapping peer id with peers [ peerId : peerObject ]
+var peers = new Map(); // hash for mapping peer id with peers [ peerId : connection ]
 var isInitiator; // identify if the current client is the creator of the room
 createRoom = document.getElementById('create-button') // create button
 createRoom.addEventListener("click", createGame); // create Lobby as the initializator
@@ -83,6 +84,8 @@ socket.on('init', function (room, client) {
   isInitiator = true
   roomId = room
   peerId = client
+  usernames.set(peerId, _username)
+  modifyContent(usernames)
   createPeerConnection(client)
   // going to the lobby and waiting for new users
   toggleLobby(room, _username)
@@ -91,7 +94,7 @@ socket.on('init', function (room, client) {
 
 socket.on("joined", function (room, players, id) {
   console.log('Your id: ' + id)
-  peerId = id; 
+  peerId = id;
   roomId = room;
   console.log('Current players:')
   for (let i = 0; i < players.length; i++) {
@@ -99,18 +102,14 @@ socket.on("joined", function (room, players, id) {
   }
   roomId = room
   toggleLobby(room, _username)
-  // TO-DO: Update list of names after connection
-  // TO-DO: Define your own peer with the id passed
-  if(!isInitiator){
+  if (!isInitiator) {
     createPeerConnection(id)
   }
-
-  // TO-DO: make a new peer for each of player (add it in the peers collection)
 })
 
 socket.on('new', function (room, client) {
   // making a new Peer Connection with the client
-  if(peer == null){
+  if (peer == null) {
     // illegal peer
     console.log('Error: Illegal access in the room')
   } else {
@@ -129,50 +128,120 @@ socket.on('leave', function (room, client) {
 /*  Peers Functions  */
 /* ----------------- */
 
-// Making your own peer 
-function createPeerConnection(id){
+// Making your own peer (Initial receiver)
+function createPeerConnection(id) {
 
   console.log('Creation of peer connection')
-  if(peer != null){
+  if (peer != null) {
     console.log('Peer already created')
     return 0
   }
-  peer = new Peer(id, config=configuration)
- 
+  peer = new Peer(id, config = configuration)
   // Peer handlers 
   // Event handler to check id
-  peer.on('open', function(id){
+  peer.on('open', function (id) {
     console.log('Open handler: your own id for peer is: ' + id)
+    // Append your username 
+    usernames.set(id, _username)
   })
 
-  peer.on("connection", function(connection){
-    connection.on('open', function(){
-      console.log('Adding new connection with the peer: '  + peerId)
+  peer.on("connection", function (connection) {
+    connection.on('open', function () {
+      console.log('Adding new connection with the peer: ' + peerId)
+      connection.send({
+        type: "sendUsername",
+        username: _username,
+        id: peerId,
+      })
     })
 
-    connection.on('data', function(data){
-      console.log('Data received: ' + data)
-      connection.send('Hello')
+
+    connection.on('data', function (data) {
+      switch (data.type) {
+        case "sendUsername": {
+          if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
+            console.log('Invalid message format')
+          } else {
+            console.log('Received: ' + data.username)
+            usernames.set(data.id, data.username)
+            modifyContent(usernames)
+          }
+        }
+          break;
+          case "removePeer": {
+            if (data.username == "" || data.username == undefined || data.id == undefined || data.id == "") {
+              console.log('Invalid close')
+            } else {
+              console.log('User: ' + data.id + " is leaving, update the list")
+              usernames.delete(data.id)
+              peers.delete(data.id)
+              ids = array.filter(function (value, index, arr) {
+                return value != data.id
+              });
+            }
+          } break;
+        default: console.log('Message not supported'); break;
+      }
     })
   })
 
   console.log('Current own peer: ')
   console.log(peer)
+}
 
+// Adding of a new connection for your peer (Initial sender)
+function addPeerConnection(id) {
+  var connection = peer.connect(id)
+
+  connection.on('open', function () {
+    connection.send({
+      type: "sendUsername",
+      username: _username,
+      id: peerId,
+    })
+  })
+
+  connection.on('data', function (data) {
+    switch (data.type) {
+      case "sendUsername": {
+        if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
+          console.log('Invalid message format')
+        } else {
+          console.log('Received: ' + data.username)
+          usernames.set(data.id, data.username)
+          modifyContent(usernames)
+        }
+      }
+      break;
+      case "removePeer": {
+        if (data.username == "" || data.username == undefined || data.id == undefined || data.id == "") {
+          console.log('Invalid close')
+        } else {
+          console.log('User: ' + data.id + " is leaving, update the list")
+          usernames.delete(data.id)
+          peers.delete(data.id)
+          ids = array.filter(function (value, index, arr) {
+            return value != data.id
+          });
+        }
+      } break;
+      default: console.log('Message not supported'); break;
+    }
+  })
+
+  peers.set(id, connection)
+  console.log("Peer added, current size:" + peers.size)
 
 }
 
-// Adding of a new connection for your peer
-function addPeerConnection(id){
-  var connection = peer.connect(id)
-  connection.on('open', function(){
-    connection.send('hi')
-  })
-
-  connection.on('data', function(data){
-    console.log(('Data received: ' + data))
-  })
-
+// Send a message in the meshs
+function sendBroadcast(message) {
+  console.log('Broadcast message')
+  for (let i = 0; i < ids.length; i++) {
+    console.log('Sending message to' + ids[i])
+    var connection = peers.get(ids[i])
+    connection.send(message)
+  }
 }
 
 
@@ -209,4 +278,11 @@ socket.on("joinError", function (room) {
 
 window.onbeforeunload = function () {
   socket.emit('close', roomId)
+}
+
+window.onclose = function () {
+  if (peer != undefined || peer != null) {
+    // Forcing destroying for correct clean up
+    peer.destroy()
+  }
 }
