@@ -10,7 +10,7 @@
 <p align="center">
   <img style="width: 899px" src="background.png">
   <i>
-    Annoying to play with the IA? Try the game with your friends and get the highest score! Good luck and have fun! &copy; Idea from Google
+    Annoying to play with the IA? Try the game with your friends and get the highest score! Good luck and have fun!<br> &copy; Idea from Google
   </i>
 </p>
 
