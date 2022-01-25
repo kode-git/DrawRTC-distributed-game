@@ -24,19 +24,21 @@ server.listen(process.env.PORT || 3000, () => {
 // Socket for signalling on the express server
 var io = socketIO(server)
 
+var rooms = new Array()
 io.sockets.on("connection", function (socket) {
 
-    
+
     // Creating handler for the create a new room from the username
     socket.on("create", function (room, username) {
         // checking if the room is void
         var users = io.sockets.adapter.rooms.get(room)
-        if(!users){
+        if (!users) {
             // room is void, you can make a new one
             // adding the user and wait for connection
             socket.join(room)
+            rooms.push(room)
             socket.emit('init', room, socket.id)
-            console.log('Room ' +  room + " created by " + username + ", total users in the room: " + io.sockets.adapter.rooms.get(room).size)
+            console.log('Room ' + room + " created by " + username + ", total users in the room: " + io.sockets.adapter.rooms.get(room).size)
         } else {
             // sending the error to the socket who made the request
             socket.emit('alreadyExists', room, socket.id)
@@ -47,10 +49,10 @@ io.sockets.on("connection", function (socket) {
     socket.on("join", function (room, username) {
         // checking if the room exists
         var users = io.sockets.adapter.rooms.get(room)
-        if(users){
+        if (users) {
             // room is valid
             var clients = new Array()
-            for (var el of users.values()){
+            for (var el of users.values()) {
                 clients.push(el)
             }
             socket.join(room)
@@ -65,15 +67,16 @@ io.sockets.on("connection", function (socket) {
         }
     })
 
-    // Close handler for the leaving of the username which owns the socket
-    socket.on('close', function (room) {
-        console.log("Client " + socket.id  + " is leaving")
-        try{
-            socket.leave(room)
-            socket.to(room).emit('leave', room, socket.id)
-        } catch(e){
-            socket.to(room).emit('leave', room, socket.id)
+    // Disconected handler for the no connection from one of the clients (no peer supported)
+    socket.on('disconnecting', function () {
+        console.log('Client ' + socket.id + " is disconnected")
+        if (rooms.length != 0) {
+            rooms.forEach(function (room) {
+                var roomSize = io.sockets.adapter.rooms.get(room).size
+                if(roomSize == 1) rooms = rooms.filter(function(value){ return value != room})
+                socket.broadcast.to(room).emit('leave', room, socket.id)
+            });
         }
-    })
 
+    })
 })

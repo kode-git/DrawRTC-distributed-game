@@ -122,7 +122,14 @@ socket.on('new', function (room, client) {
 })
 
 socket.on('leave', function (room, client) {
-  console.log('Client ' + client + " is leaving from room" + room)
+  console.log('Leave notified...')
+    console.log('Client ' + client + " is leaving from room" + room)
+    usernames.delete(client)
+    peers.delete(client)
+    ids = ids.filter(function (value, index, arr) {
+      return value != client
+    });
+    modifyContent(usernames)
 })
 
 /* ----------------- */
@@ -190,20 +197,6 @@ function createPeerConnection(id) {
           }
         }
           break;
-          case "removePeer": {
-            console.log('Removing peer triggers')
-            if (data.username == "" || data.username == undefined || data.id == undefined || data.id == "") {
-              console.log('Invalid close')
-            } else {
-              console.log('User: ' + data.id + " is leaving, update the list")
-              usernames.delete(data.id)
-              peers.delete(data.id)
-              ids = ids.filter(function (value, index, arr) {
-                return value != data.id
-              });
-              modifyContent(usernames)
-            }
-          } break;
         default: console.log('Message not supported'); break;
       }
     })
@@ -238,20 +231,6 @@ function addPeerConnection(id) {
         }
       }
       break;
-      case "removePeer": {
-        console.log('Removing peer triggers')
-        if (data.username == "" || data.username == undefined || data.id == undefined || data.id == "") {
-          console.log('Invalid close')
-        } else {
-          console.log('User: ' + data.id + " is leaving, update the list")
-          usernames.delete(data.id)
-          peers.delete(data.id)
-          ids = ids.filter(function (value, index, arr) {
-            return value != data.id
-          });
-          modifyContent(usernames)
-        }
-      } break;
       default: console.log('Message not supported'); break;
     }
   })
@@ -326,6 +305,6 @@ function removePeer(){
   ids = new Array();
   peers = new Map(); 
   isInitiator = null; 
-  peer.destroy()
+  if(peer != undefined) peer.destroy()
 }
 

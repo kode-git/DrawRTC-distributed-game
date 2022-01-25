@@ -88,8 +88,4 @@ function toggleGame(roomId, painter, competitors) {
 
 // TO-DO: Complete it
 lobbyButton.addEventListener('click', function (e) {
-    checkPeers()
-    sendBroadcast({
-        type: "Ready",
-    })
 })
