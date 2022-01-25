@@ -5,6 +5,7 @@ lobby = document.getElementById('lobby-content')
 game = document.getElementById('game-content')
 lobbyName = document.getElementById('lobby-name')
 lobbyButton = document.getElementById('lobby-button')
+lobbyExitButton = document.getElementById('lobby-exit-button')
 userList = document.getElementById('user-list')
 
 // Copying service for room sharing with temporal notify on the screen
@@ -34,6 +35,12 @@ lobbyName.addEventListener('click', (event) => {
     document.body.appendChild(styler);
 })
 
+lobbyExitButton.addEventListener('click', function(e){
+    console.log('Removing peer from the lobby...')
+    removePeer();
+    toggleHomepage();
+})
+
 // Given the username maps, fill the content with the usernames list
 function modifyContent(usernames){
     console.log('Updating the content of the username list')
@@ -49,13 +56,17 @@ function modifyContent(usernames){
 // Changing the default view to Home Mode
 window.addEventListener('load', (event) => {
     // default view is on the homepage
+    toggleHomepage()
+});
+
+function toggleHomepage(){
+    // default view is on the homepage
     console.log('Loading homepage content')
     homepage.style.display = 'block'
     document.body.style.backgroundColor = "white";
     lobby.style.display = 'none'
     game.style.display = 'none'
-});
-
+}
 // Changing the view to Lobby Model
 function toggleLobby(roomId, username) {
     // this is the dynamic content of the lobby from the homepage
@@ -77,6 +88,7 @@ function toggleGame(roomId, painter, competitors) {
 
 // TO-DO: Complete it
 lobbyButton.addEventListener('click', function (e) {
+    checkPeers()
     sendBroadcast({
         type: "Ready",
     })

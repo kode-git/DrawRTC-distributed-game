@@ -67,18 +67,13 @@ io.sockets.on("connection", function (socket) {
 
     // Close handler for the leaving of the username which owns the socket
     socket.on('close', function (room) {
+        console.log("Client " + socket.id  + " is leaving")
         try{
-            console.log("Client " + socket.id  + " is leaving")
             socket.leave(room)
+            socket.to(room).emit('leave', room, socket.id)
         } catch(e){
             socket.to(room).emit('leave', room, socket.id)
         }
     })
 
-    socket.on("message", function(message, room){
-        console.log(message)
-        if(message.type == "offer"){
-            console.log('Offer catched for ' + room + " at the user joined ") 
-        }
-    })
 })

@@ -19,6 +19,7 @@ var socket = io.connect() // socket opening
 var _username; // Username of the player
 var peerId; // your own id, the owned peer is not included in peers
 var peer;
+var isRemoved = false;
 var usernames = new Map(); // hash for mapping peer id with their own usernames [peerId : username ]
 var ids = new Array() // peer id in the mesh
 var peers = new Map(); // hash for mapping peer id with peers [ peerId : connection ]
@@ -132,7 +133,7 @@ socket.on('leave', function (room, client) {
 function createPeerConnection(id) {
 
   console.log('Creation of peer connection')
-  if (peer != null) {
+  if (peer != null && !isRemoved) {
     console.log('Peer already created')
     return 0
   }
@@ -145,6 +146,14 @@ function createPeerConnection(id) {
     usernames.set(id, _username)
   })
 
+  peer.on("disconnected", function(){
+    // void                                                                                                                  
+  })
+
+  peer.on('close', function(){
+    peer.destroy()
+  })
+
   peer.on("connection", function (connection) {
     connection.on('open', function () {
       console.log('Adding new connection with the peer: ' + peerId)
@@ -153,6 +162,19 @@ function createPeerConnection(id) {
         username: _username,
         id: peerId,
       })
+    })
+
+    connection.on('close', function(){
+      // The connection is closed on the sender endpoint, so we need to retrieve the peer end on
+      // the connection itself.
+      console.log('Closing connection with: ' + connection.peer)
+      id = connection.peer
+      usernames.delete(id)
+      peers.delete(id)
+      ids = ids.filter(function(value, index, arr){
+        return value != id
+      })
+      modifyContent(usernames)
     })
 
 
@@ -169,20 +191,23 @@ function createPeerConnection(id) {
         }
           break;
           case "removePeer": {
+            console.log('Removing peer triggers')
             if (data.username == "" || data.username == undefined || data.id == undefined || data.id == "") {
               console.log('Invalid close')
             } else {
               console.log('User: ' + data.id + " is leaving, update the list")
               usernames.delete(data.id)
               peers.delete(data.id)
-              ids = array.filter(function (value, index, arr) {
+              ids = ids.filter(function (value, index, arr) {
                 return value != data.id
               });
+              modifyContent(usernames)
             }
           } break;
         default: console.log('Message not supported'); break;
       }
     })
+    peers.set(id, connection)
   })
 
   console.log('Current own peer: ')
@@ -214,19 +239,35 @@ function addPeerConnection(id) {
       }
       break;
       case "removePeer": {
+        console.log('Removing peer triggers')
         if (data.username == "" || data.username == undefined || data.id == undefined || data.id == "") {
           console.log('Invalid close')
         } else {
           console.log('User: ' + data.id + " is leaving, update the list")
           usernames.delete(data.id)
           peers.delete(data.id)
-          ids = array.filter(function (value, index, arr) {
+          ids = ids.filter(function (value, index, arr) {
             return value != data.id
           });
+          modifyContent(usernames)
         }
       } break;
       default: console.log('Message not supported'); break;
     }
+  })
+
+  connection.on('close', function(){
+    console.log('Connection closed with: ' + id) 
+    usernames.delete(id)
+    peers.delete(id)
+    ids = ids.filter(function(value, index, arr){
+      return value != id
+    })
+    modifyContent(usernames)
+  })
+
+  connection.on('disconnected', function(){
+    console.log('Disconnection with: ' + id)
   })
 
   peers.set(id, connection)
@@ -236,14 +277,7 @@ function addPeerConnection(id) {
 
 // Send a message in the meshs
 function sendBroadcast(message) {
-  console.log('Broadcast message')
-  for (let i = 0; i < ids.length; i++) {
-    console.log('Sending message to' + ids[i])
-    var connection = peers.get(ids[i])
-    connection.send(message)
-  }
 }
-
 
 /* ----------------- */
 /*   Error Handlers  */
@@ -276,13 +310,22 @@ socket.on("joinError", function (room) {
 /*   Window Handlers */
 /* ----------------- */
 
-window.onbeforeunload = function () {
-  socket.emit('close', roomId)
+window.onbeforeunload = function (e) {
+  peer.disconnect()
 }
 
-window.onclose = function () {
-  if (peer != undefined || peer != null) {
-    // Forcing destroying for correct clean up
-    peer.destroy()
-  }
+/* --------------------*/
+/*   Temporal Function */
+/* ------------------- */
+
+
+function removePeer(){
+  isRemoved = true;
+  peerId = null;
+  usernames = new Map(); 
+  ids = new Array();
+  peers = new Map(); 
+  isInitiator = null; 
+  peer.destroy()
 }
+
