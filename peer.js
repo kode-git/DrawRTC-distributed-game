@@ -258,9 +258,9 @@ function addPeerConnection(id) {
 function sendBroadcast(message) {
 }
 
-/* ----------------- */
-/*   Error Handlers  */
-/* ----------------- */
+/* ---------------------------- */
+/*   Error Connection Handlers  */
+/* ---------------------------- */
 
 // Error handler for the alreadyExists game room during the create mode
 socket.on("alreadyExists", function (room) {

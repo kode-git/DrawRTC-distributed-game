@@ -7,11 +7,12 @@ lobbyName = document.getElementById('lobby-name')
 lobbyButton = document.getElementById('lobby-button')
 lobbyExitButton = document.getElementById('lobby-exit-button')
 userList = document.getElementById('user-list')
+mainNavbar = document.getElementById('main-nav')
 
 // Copying service for room sharing with temporal notify on the screen
 lobbyName.addEventListener('click', (event) => {
     var roomName = lobbyName.innerHTML
-    // Create new element
+        // Create new element
     var el = document.createElement('textarea');
     // Set value (string to be copied)
     el.value = roomName;
@@ -29,25 +30,25 @@ lobbyName.addEventListener('click', (event) => {
     var styler = document.createElement("div");
     styler.setAttribute("style", "background-color: #f7f7f7; padding: 2px -100px; color: black; display: table; text-align: center; margin: auto; width:50%; margin: 1px solid black; border-radius: 10px; box-shadow: 5px 7px rgb(0, 0, 0); ");
     styler.innerHTML = "Room name copied!";
-    setTimeout(function () {
+    setTimeout(function() {
         styler.parentNode.removeChild(styler);
     }, 2000);
     document.body.appendChild(styler);
 })
 
-lobbyExitButton.addEventListener('click', function(e){
+lobbyExitButton.addEventListener('click', function(e) {
     console.log('Removing peer from the lobby...')
     removePeer();
     toggleHomepage();
 })
 
 // Given the username maps, fill the content with the usernames list
-function modifyContent(usernames){
+function modifyContent(usernames) {
     console.log('Updating the content of the username list')
     usernameIterator = usernames.values()
     content = "Players:\n"
-    for(let i = 0; i < usernames.size; i++){
-        content+= usernameIterator.next().value + "\n"
+    for (let i = 0; i < usernames.size; i++) {
+        content += usernameIterator.next().value + "\n"
     }
     console.log(content)
     userList.value = content
@@ -59,7 +60,7 @@ window.addEventListener('load', (event) => {
     toggleHomepage()
 });
 
-function toggleHomepage(){
+function toggleHomepage() {
     // default view is on the homepage
     console.log('Loading homepage content')
     homepage.style.display = 'block'
@@ -67,6 +68,7 @@ function toggleHomepage(){
     lobby.style.display = 'none'
     game.style.display = 'none'
 }
+
 // Changing the view to Lobby Model
 function toggleLobby(roomId, username) {
     // this is the dynamic content of the lobby from the homepage
@@ -74,6 +76,7 @@ function toggleLobby(roomId, username) {
     $('#modal-create').modal('hide')
     console.log('Loading lobby content')
     homepage.style.display = 'none'
+    game.style.display = 'none'
     lobby.style.display = 'block'
     document.body.style.backgroundColor = "#ffc107";
     lobbyName.innerHTML = roomId // setup the roomId
@@ -83,9 +86,14 @@ function toggleLobby(roomId, username) {
 // Changing the views to Game mode
 function toggleGame(roomId, painter, competitors) {
     // this is the dynamic content of the game from the lobby
+    homepage.style.display = 'none'
+    lobby.style.display = 'none'
+    mainNavbar.style.display = 'none'
+    game.style.display = 'block'
 }
 
 
-// TO-DO: Complete it
-lobbyButton.addEventListener('click', function (e) {
+// Temporal Button for binding with game
+lobbyButton.addEventListener('click', function() {
+    toggleGame(null, null, null)
 })
