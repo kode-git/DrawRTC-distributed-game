@@ -9,8 +9,10 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link href="https://fonts.googleapis.com/css?family=Sedgwick+Ave:400" rel="stylesheet" type="text/css">
     <meta itemprop="name" content="Quick, DrawRTC!">
-    <meta itemprop="description" content="Annoying to play with the IA? Try the game with your friends and get the highest score! More info about game rules in the following link. Good luck and have fun!">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <meta itemprop="description"
+        content="Annoying to play with the IA? Try the game with your friends and get the highest score! More info about game rules in the following link. Good luck and have fun!">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="/main.css">
 </head>
 
@@ -36,7 +38,8 @@
                         link</a></span>. Good luck and have fun!
             </label>
             <hr>
-            <button type="button" data-toggle="modal" data-target="#modal-create" class="btn btn-warning btn-shadow">Create
+            <button type="button" data-toggle="modal" data-target="#modal-create"
+                class="btn btn-warning btn-shadow">Create
                 Game</button>
             <button type="button" data-toggle="modal" data-target="#modal-join" class="btn btn-warning btn-shadow">Join
                 Game</button>
@@ -49,7 +52,8 @@
         <!-- Homepage Modals -->
 
         <!-- Begin Create Game Modal -->
-        <div class="modal fade" id="modal-create" tabindex="-1" role="dialog" aria-labelledby="modal-create" aria-hidden="true">
+        <div class="modal fade" id="modal-create" tabindex="-1" role="dialog" aria-labelledby="modal-create"
+            aria-hidden="true">
             <div class="modal-dialog cascading-modal modal-avatar modal-sm" role="document">
                 <!--Content-->
                 <div class="modal-content">
@@ -64,7 +68,8 @@
                         <div class="form-field">
                             <label data-error="wrong" data-success="right" for="form29" class="ml-0">Enter
                                 Username</label>
-                            <input id="create-username" type="text" id="form29" class="form-control form-control-sm validate ml-0">
+                            <input id="create-username" type="text" id="form29"
+                                class="form-control form-control-sm validate ml-0">
                         </div>
 
                         <div class="text-center mt-4">
@@ -78,7 +83,8 @@
         </div>
         <!-- End Create Game Modal -->
         <!-- Begin Join Game Modal -->
-        <div class="modal fade" id="modal-join" tabindex="-1" role="dialog" aria-labelledby="modal-create" aria-hidden="true">
+        <div class="modal fade" id="modal-join" tabindex="-1" role="dialog" aria-labelledby="modal-create"
+            aria-hidden="true">
             <div class="modal-dialog cascading-modal modal-avatar modal-sm" role="document">
                 <!--Content-->
                 <div class="modal-content">
@@ -93,17 +99,20 @@
                         <div class="form-field">
                             <label data-error="wrong" data-success="right" for="form30" class="ml-0">Enter
                                 Roomname</label>
-                            <input id="join-room" type="text" id="form30" class="form-control form-control-sm validate ml-0">
+                            <input id="join-room" type="text" id="form30"
+                                class="form-control form-control-sm validate ml-0">
                         </div>
 
                         <div class="form-field">
                             <label data-error="wrong" data-success="right" for="form31" class="ml-0">Enter
                                 Username</label>
-                            <input id="join-username" type="text" id="form31" class="form-control form-control-sm validate ml-0">
+                            <input id="join-username" type="text" id="form31"
+                                class="form-control form-control-sm validate ml-0">
                         </div>
 
                         <div class="text-center mt-4">
-                            <button id="join-button" type="button" class="btn btn-warning btn-shadow" data-dismiss="#modal-join">Join Game</button>
+                            <button id="join-button" type="button" class="btn btn-warning btn-shadow"
+                                data-dismiss="#modal-join">Join Game</button>
                         </div>
 
                     </div>
@@ -127,14 +136,15 @@
             <label id="subtitle-lobby">
                 <hr>
                 Game is starting soon, you need to wait minimum 3 players to enjoy the game. Share the lobby name with
-                your friends, click the "Ready" button
+                your friends, click the "Game" button
                 and have fun!
             </label>
             <textarea id="user-list" rows="10" cols="25" readonly="true">Players:
             </textarea>
             <hr>
-            <button type="button" id="lobby-button" class="btn btn-warning"><i class="material-icons">
-                sports_esports
+            <button type="button" id="lobby-button"
+                class="btn btn-warning"><i class="material-icons">
+                    sports_esports
                 </i> Play</button>
             <button type="button" id="lobby-exit-button" class="btn btn-warning"><i class="material-icons">
                     logout
@@ -144,25 +154,27 @@
                     href="https://www.github.com/kode-git">Mario Sessa</a></label>
         </form>
     </div>
+    <!-- Play Modal -->
     <!-- End Lobby -->
     <!-- Game room -->
 
     <div id="game-content">
         <nav id="game-nav" class="navbar">
             <!-- Navbar content -->
-            <span id="word-guess" class="navbar-brand">Guess Word: Dog</span>
+            <button class="btn" id="start-game">Start Game!</button>
+            <span id="word-guess" class="navbar-brand"></span>
             <ul id="game-title" class="nav justify-content-center">
-                <li>You are the Painter</li>
+                <li id="left-title"></li>
             </ul>
         </nav>
         <div class="frame">
             <div class="left">
                 <div class="sidebar">
                     <a><i class="material-icons sidebar-icons">
-                        question_mark
+                            question_mark
                         </i></a>
                     <a><i class="material-icons sidebar-icons">
-                        delete_sweep
+                            delete_sweep
                         </i></a>
                 </div>
                 <canvas id="paper"></canvas>
@@ -171,7 +183,8 @@
 
             </div>
             <div class="right">
-                <p id="game-intro">Welcome to the game!<br> Do you want to know roles? <br><a data-toggle="modal" data-target="#modal-info" id="game-help">Check them here!</a></p>
+                <p id="game-intro">Welcome to the game!<br> Do you want to know roles? <br><a data-toggle="modal"
+                        data-target="#modal-info" id="game-help">Check them here!</a></p>
                 <textarea id="game-score" cols="44" rows="10" readonly></textarea>
                 <hr>
                 <section class="msger">
@@ -184,7 +197,9 @@
                         </div>
                     </header>
 
-                    <main class="msger-chat">
+                    <main id="content-chat" class="msger-chat">
+                        
+                        <!-- Template for the message chats 
                         <div class="msg left-msg">
                             <div style="background-image: url(avatars/5.png)" class="msg-img"></div>
 
@@ -206,6 +221,7 @@
                                 </div>
                             </div>
                         </div>
+                        -->
                     </main>
 
                     <form class="msger-inputarea ">
@@ -229,7 +245,9 @@
                     <button type="button " class="close " data-dismiss="modal ">&times;</button>
                 </div>
                 <div class="modal-body ">
-                    <p>The game consists of a challenge with your friends. There is one painter and minimum two or more competitors for each game session. The painter needs to draw the upright word to guess in the distributed paper and competitors needs
+                    <p>The game consists of a challenge with your friends. There is one painter and minimum two or more
+                        competitors for each game session. The painter needs to draw the upright word to guess in the
+                        distributed paper and competitors needs
                         to guess the object before the opponents. <u>The
                             game
                             continues since one of the competitors didn't obtain 10 points or when the painter click
@@ -237,12 +255,18 @@
                             the end button.</u></p>
                     <hr>
                     <h4 id="painter-modal ">Painter role</h4>
-                    <p><b>The word to guess is on the upright of the painter interface</b>. There are no time limits for him, he can draw and cancel scribbles on the paper whenever. The scoring system doesn't include him for the game session, but he can
-                        arbitrarily decide to stop the game, fix the final scores and, consequently, define the winner of the game!</p>
+                    <p><b>The word to guess is on the upright of the painter interface</b>. There are no time limits for
+                        him, he can draw and cancel scribbles on the paper whenever. The scoring system doesn't include
+                        him for the game session, but he can
+                        arbitrarily decide to stop the game, fix the final scores and, consequently, define the winner
+                        of the game!</p>
                     <hr>
                     <h4 id="competitor-modal ">Competitors role</h4>
-                    <p>Competitors need to guess what the painter is drawing before the opponents. Each time you succeed in guessing before the others, <b>you receive 1 point</b>. The proposals made to the game are written in chat and viewed by everyone.
-                        When the word is guessed, each player will see a banner with the notification of the round winner.</p>
+                    <p>Competitors need to guess what the painter is drawing before the opponents. Each time you succeed
+                        in guessing before the others, <b>you receive 1 point</b>. The proposals made to the game are
+                        written in chat and viewed by everyone.
+                        When the word is guessed, each player will see a banner with the notification of the round
+                        winner.</p>
                 </div>
                 <div class="modal-footer ">
                     <button type="button " class="btn btn-warning btn-shadow " data-dismiss="modal ">Close</button>
@@ -261,11 +285,19 @@
     <!-- PeerJS Library -->
     <script src="/peerjs.min.js "></script>
     <!-- Socket.io -->
-    <script src="https://cdn.socket.io/3.1.3/socket.io.min.js " integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh " crossorigin="anonymous "></script>
+    <script src="https://cdn.socket.io/3.1.3/socket.io.min.js "
+        integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh "
+        crossorigin="anonymous "></script>
     <!-- Bootstrap - JQuery -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js " integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo " crossorigin="anonymous "></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js " integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1 " crossorigin="anonymous "></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js " integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM " crossorigin="anonymous "></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js "
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo "
+        crossorigin="anonymous "></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js "
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1 "
+        crossorigin="anonymous "></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js "
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM "
+        crossorigin="anonymous "></script>
     <!-- Internal scripts for peers communication and Javascript management-->
     <script src="/index.js "></script>
     <script src="/peer.js "></script>

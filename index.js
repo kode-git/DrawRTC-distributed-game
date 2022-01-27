@@ -8,6 +8,8 @@ lobbyButton = document.getElementById('lobby-button')
 lobbyExitButton = document.getElementById('lobby-exit-button')
 userList = document.getElementById('user-list')
 mainNavbar = document.getElementById('main-nav')
+playButton = document.getElementById('play-button')
+
 
 // Copying service for room sharing with temporal notify on the screen
 lobbyName.addEventListener('click', (event) => {
@@ -42,6 +44,11 @@ lobbyExitButton.addEventListener('click', function(e) {
     toggleHomepage();
 })
 
+lobbyButton.addEventListener('click', function(event){
+    console.log('Joining in the game...')
+    initGame()
+})
+
 // Given the username maps, fill the content with the usernames list
 function modifyContent(usernames) {
     console.log('Updating the content of the username list')
@@ -52,7 +59,37 @@ function modifyContent(usernames) {
     }
     console.log(content)
     userList.value = content
+    // TO-DO: Change it to 3
+    if(usernames.size >= 1){
+        lobbyButton.disabled = false
+    } else {
+        lobbyButton.disabled = true
+    }
 }
+
+function initGameContent(username, room){
+    leftTitle = document.getElementById('left-title')
+    leftTitle.innerHTML = "Room: " + room
+    startGameButton = document.getElementById('start-game')
+    startGameButton.disabled = true
+    startGameButton.innerHTML = "Waiting players"
+    // Making notify the enter of the user
+    notifyEnter(username)
+}
+
+function notifyEnter(username){
+    chatContent = document.getElementById('content-chat')
+    var element = document.createElement('div')
+    element.classList.add('msg')
+    element.classList.add('left-msg')
+    element.style.color = "grey"
+    var contentElement = document.createTextNode('Player ' + username + " joining in the chat")
+    element.appendChild(contentElement)
+    chatContent.appendChild(element)
+    gameScore = document.getElementById('game-score')
+    gameScore.value = gameScore.value + "" + username + ": 0 points"
+}
+
 
 // Changing the default view to Home Mode
 window.addEventListener('load', (event) => {
@@ -84,7 +121,7 @@ function toggleLobby(roomId, username) {
 
 
 // Changing the views to Game mode
-function toggleGame(roomId, painter, competitors) {
+function toggleGame() {
     // this is the dynamic content of the game from the lobby
     homepage.style.display = 'none'
     lobby.style.display = 'none'
@@ -93,7 +130,3 @@ function toggleGame(roomId, painter, competitors) {
 }
 
 
-// Temporal Button for binding with game
-lobbyButton.addEventListener('click', function() {
-    toggleGame(null, null, null)
-})

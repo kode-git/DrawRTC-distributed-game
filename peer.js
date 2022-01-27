@@ -22,6 +22,9 @@ var usernames = new Map(); // hash for mapping peer id with their own usernames 
 var ids = new Array() // peer id in the mesh
 var peers = new Map(); // hash for mapping peer id with peers [ peerId : connection ]
 var isInitiator; // identify if the current client is the creator of the room
+var vote; // Vote of the painter 
+var isVoted = false; // If the user is not voted
+
 createRoom = document.getElementById('create-button') // create button
 createRoom.addEventListener("click", createGame); // create Lobby as the initializator
 joinRoom = document.getElementById('join-button') // join button
@@ -275,6 +278,17 @@ function removePeer() {
     if (peer != undefined) peer.destroy()
 }
 
+/* ---------------------------- */
+/*   Game Management for Peer   */
+/* ---------------------------- */
+
+// this function is the game init session on the current peer
+function initGame(){
+    console.log('Init the game!')
+    console.log(_username + " joining in the game")
+    initGameContent(_username, roomId)
+    toggleGame()
+}
 
 /* ---------------------------- */
 /*   Error Connection Handlers  */
