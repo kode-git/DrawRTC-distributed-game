@@ -23,7 +23,10 @@ var ids = new Array() // peer id in the mesh
 var peers = new Map(); // hash for mapping peer id with peers [ peerId : connection ]
 var isInitiator; // identify if the current client is the creator of the room
 var vote; // Vote of the painter 
+var gameMode = false; // Number of players in game mode
+var counterGameMode = 0;
 var isVoted = false; // If the user is not voted
+var isStarted = false; // if the game is started
 var isJoined = false; // if the user is in the game mode
 var scores = new Map(); // hash for mapping the game score with [ username : score_value]
 createRoom = document.getElementById('create-button') // create button
@@ -184,6 +187,9 @@ function createPeerConnection(id) {
             // the connection itself.
             console.log('Closing connection with: ' + connection.peer)
             id = connection.peer
+            if(isStarted){
+                // TO-DO: Updating content 
+            }
             scores.delete(usernames.get(id))
             usernames.delete(id)
             peers.delete(id)
@@ -200,6 +206,15 @@ function createPeerConnection(id) {
                     {
                         if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
                             console.log('Invalid message format')
+                        } else if (isStarted) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: 'The game is started, you can\'t join in the room.',
+                                confirmButtonColor: '#f0ad4e',
+                            })
+                            removePeer()
+                            toggleHomepage()
                         } else {
                             console.log('New Peer connection')
                             if (usernames.get(data.username) != undefined || usernames.get(data.username) != null || data.username == _username) {
@@ -229,9 +244,36 @@ function createPeerConnection(id) {
                         } else {
                             if (isJoined) {
                                 notifyEnter(data.username)
+
+                            }
+                            counterGameMode++
+                            console.log('Current counter of game mode: ' + counterGameMode + ", on the joining of client: " + data.id)
+                            console.log('Current connected peers: ' + peers.size)
+                            if ((peers.size + 1) <= counterGameMode && !isStarted) {
+                                // peers are in the game mode
+                                console.log('Game mode: Available')
+                                sendBroadcast({
+                                    type: 'availableGame',
+                                    id: peerId,
+                                })
+                                toggleGameButton(false)
+
+                            }else {
+                                toggleGameButton(true)
+                            }
+                            console.log("Size of scores: " + scores.size)
+                            // Fixing missing propagation (Avoiding redundance message caching)
+                            if(scores.size != peers.size && !isStarted){
+                                // resize it before the game start
+                                scoreSetting()
                             }
                             updateScore(scores)
                         }
+                    }
+                    break;
+                case "availableGame":
+                    {
+                        toggleGameButton(false) // let every peer the possibility to start the game
                     }
                     break;
                 default:
@@ -265,7 +307,6 @@ function addPeerConnection(id) {
                     if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
                         console.log('Invalid message format')
                     } else {
-                        console.log('Enter in AddConnection...')
                         if (usernames.get(data.username) != undefined || usernames.get(data.username) != null || data.username == _username) {
                             connection.send({
                                 type: "alreadyExists",
@@ -292,8 +333,35 @@ function addPeerConnection(id) {
                             notifyEnter(data.username)
 
                         }
+                        counterGameMode++
+                        console.log('Current counter of game mode: ' + counterGameMode + ", on the joining of client: " + data.id)
+                        console.log('Current connected peers: ' + peers.size)
+                        // +1 for the current peer consideration
+                        if ((peers.size + 1) <= counterGameMode && !isStarted) {
+                            // peers are in the game mode
+                            console.log('Game mode: Available')
+                            sendBroadcast({
+                                type: 'availableGame',
+                                id: peerId,
+                            })
+                            toggleGameButton(false)
+
+                        } else {
+                            toggleGameButton(true)
+                        }
+                        console.log("Size of scores: " + scores.size)
+                        // Fixing missing propagation (Avoiding redundance message caching)
+                        if(scores.size != peers.size && !isStarted){
+                            // resize it before the game start
+                            scoreSetting()
+                        }
                         updateScore(scores)
                     }
+                }
+                break;
+            case "availableGame":
+                {
+                    toggleGameButton(false) // let every peer the possibility to start the game
                 }
                 break;
             default:
@@ -305,6 +373,9 @@ function addPeerConnection(id) {
     connection.on('close', function () {
         console.log('Connection closed with: ' + id)
         scores.delete(usernames.get(id))
+        if(isStarted){
+            // TO-DO: Updating content 
+        }
         usernames.delete(id)
         peers.delete(id)
         ids = ids.filter(function (value, index, arr) {
@@ -322,6 +393,7 @@ function addPeerConnection(id) {
 
 }
 
+
 // Send a message in the meshs
 function sendBroadcast(message) {
     if (message.type == "undefined") {
@@ -333,7 +405,7 @@ function sendBroadcast(message) {
         var connections = peers.values()
         for (let i = 0; i < peers.size; i++) {
             var connection = connections.next().value
-            console.log('Connection sent:' + connection)
+            console.log('Connection sent:' + connection.toString())
             connection.send(message)
         }
     }
@@ -345,6 +417,8 @@ function removePeer() {
     isRemoved = true;
     peerId = null;
     isJoined = false
+    isStarted = false
+    counterGameMode = 0
     usernames = new Map();
     ids = new Array();
     peers = new Map();
@@ -360,17 +434,35 @@ function removePeer() {
 function initGame() {
     console.log('Init the game!')
     console.log(_username + " joining in the game")
+    // changing dynamic content
     initGameContent(_username, roomId)
+    // The player enter in the game mode
+    gameMode = true
+    // Adding in the game mode the player 
+    counterGameMode++ // counting the player in the game mode
+    // Pass to the game view
     toggleGame()
+    // Player is joined in the game room
     isJoined = true
     // sending the joining status to all peers
     message = {
         type: "joinGame",
         username: _username,
+        gameMode: true,
         id: peerId
     }
     sendBroadcast(message)
 
+}
+
+
+function scoreSetting(){
+    if(!isStarted){
+        var usernamesIterator = usernames.values()
+        for(let i = 0; i < peers.size; i++){
+            scores.set(usernamesIterator.next().value, 0)
+        }
+    }
 }
 
 /* ---------------------------- */

@@ -9,7 +9,7 @@ lobbyExitButton = document.getElementById('lobby-exit-button')
 userList = document.getElementById('user-list')
 mainNavbar = document.getElementById('main-nav')
 playButton = document.getElementById('play-button')
-
+startButton = document.getElementById('start-game')
 
 // Copying service for room sharing with temporal notify on the screen
 lobbyName.addEventListener('click', (event) => {
@@ -47,6 +47,13 @@ lobbyExitButton.addEventListener('click', function(e) {
 lobbyButton.addEventListener('click', function(event){
     console.log('Joining in the game...')
     initGame()
+})
+
+startButton.addEventListener('click', function(event){
+    console.log('Start Button clicked')
+    // TO-DO: Setup the painter randomly and propagate it to each peer
+    // than trasform the view of the painter peer in the correct one
+    // Setup for the Guess word and propagate guess system
 })
 
 // Given the username maps, fill the content with the usernames list
@@ -137,4 +144,26 @@ function toggleGame() {
     game.style.display = 'block'
 }
 
+// change the availability of the game mode
+function toggleGameButton(value){
+    console.log('Toggle Game Button started...')
+    // manual toggle
+    if(value != undefined){
+        startButton.disabled = value
+        if(!value){
+            startButton.innerHTML = "Start Game"
+        } else {
+            startButton.inneHTML = "Waiting players"
+        }
+    } else {
+        // automatic toggle
+        if(startButton.disabled){
+            startButton.disabled = false
+            startButton.innerHTML = "Start Game"
+        } else {
+            startButton.disabled = true
+            startButton.inneHTML = "Waiting players"
+        }
+    }
+}
 
