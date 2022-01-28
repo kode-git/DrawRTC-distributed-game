@@ -142,7 +142,7 @@ socket.on('leave', function (room, client) {
 /*  Peers Functions  */
 /* ----------------- */
 
-// Making your own peer (Initial receiver)
+// Making your own peer (Receiver endpoint)
 function createPeerConnection(id) {
 
     console.log('Creation of peer connection')
@@ -201,11 +201,23 @@ function createPeerConnection(id) {
                         if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
                             console.log('Invalid message format')
                         } else {
-                            console.log('Received: ' + data.username)
-                            usernames.set(data.id, data.username)
-                            // maybe if it is double
-                            scores.set(data.username, 0)
-                            modifyContent(usernames)
+                            console.log('New Peer connection')
+                            if (usernames.get(data.username) != undefined || usernames.get(data.username) != null || data.username == _username) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Oops...',
+                                    text: 'The username ' + data.username + " already used, use another one to join in the room",
+                                    confirmButtonColor: '#f0ad4e',
+                                })
+                                removePeer()
+                                toggleHomepage()
+                            } else {
+                                console.log('Received: ' + data.username)
+                                usernames.set(data.id, data.username)
+                                // maybe if it is double
+                                scores.set(data.username, 0)
+                                modifyContent(usernames)
+                            }
                         }
 
                     }
@@ -215,7 +227,7 @@ function createPeerConnection(id) {
                         if (data.username == undefined) {
                             console.log('Invalid message format')
                         } else {
-                            if(isJoined){
+                            if (isJoined) {
                                 notifyEnter(data.username)
                             }
                             updateScore(scores)
@@ -234,7 +246,7 @@ function createPeerConnection(id) {
     console.log(peer)
 }
 
-// Adding of a new connection for your peer (Initial sender)
+// Adding of a new connection for your peer (Sender endpoint)
 function addPeerConnection(id) {
     var connection = peer.connect(id)
 
@@ -253,11 +265,22 @@ function addPeerConnection(id) {
                     if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
                         console.log('Invalid message format')
                     } else {
-                        console.log('Received: ' + data.username)
-                        usernames.set(data.id, data.username)
-                        scores.set(data.username, 0)
-                        modifyContent(usernames)
+                        console.log('Enter in AddConnection...')
+                        if (usernames.get(data.username) != undefined || usernames.get(data.username) != null || data.username == _username) {
+                            connection.send({
+                                type: "alreadyExists",
+                                username: data.username,
+                                id: peerId,
+                            })
+                        } else {
+                            console.log('Received: ' + data.username)
+                            usernames.set(data.id, data.username)
+                            // maybe if it is double
+                            scores.set(data.username, 0)
+                            modifyContent(usernames)
+                        }
                     }
+
                 }
                 break;
             case "joinGame":
@@ -265,9 +288,9 @@ function addPeerConnection(id) {
                     if (data.username == undefined) {
                         console.log('Invalid message format')
                     } else {
-                        if(isJoined){
+                        if (isJoined) {
                             notifyEnter(data.username)
-                            
+
                         }
                         updateScore(scores)
                     }
