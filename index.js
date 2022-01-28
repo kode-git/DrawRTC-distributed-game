@@ -86,10 +86,18 @@ function notifyEnter(username){
     var contentElement = document.createTextNode('Player ' + username + " joining in the chat")
     element.appendChild(contentElement)
     chatContent.appendChild(element)
-    gameScore = document.getElementById('game-score')
-    gameScore.value = gameScore.value + "" + username + ": 0 points"
 }
 
+function updateScore(scores){
+    gameScore = document.getElementById('game-score')
+    gameScore.value = "\nScore\n" +
+    "-----------\n";
+    var usernames = scores.keys()
+    for(let i = 0; i < scores.size; i++){
+        var username = usernames.next().value
+        gameScore.value += "\n" + username + ": " + scores.get(username) + " points"
+    }
+}
 
 // Changing the default view to Home Mode
 window.addEventListener('load', (event) => {

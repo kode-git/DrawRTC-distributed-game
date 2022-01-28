@@ -5,7 +5,7 @@ canvas = document.getElementById('paper');
 // Score table
 gameScore = document.getElementById('game-score');
 
-// TO-DO: Fill it with peers
+// First display of the content Score
 contentScore = "\nScore\n" +
     "-----------\n";
 gameScore.value = contentScore;
@@ -16,9 +16,4 @@ function generateRandom(x, y) {
     } else {
         return -1;
     }
-}
-
-// TO-DO: Function to manage view and add a peer or own message
-function addMessage(message, username, number, position) {
-
 }
