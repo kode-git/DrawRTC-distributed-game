@@ -26,6 +26,8 @@ var vote; // Vote of the painter
 var gameMode = false; // Number of players in game mode
 var counterGameMode = 0;
 var isVoted = false; // If the user is not voted
+var numVotes = 0; // defined the number of votes on the peer
+var voteList = new Map(); // list of votes [ username : candidateVote]
 var isStarted = false; // if the game is started
 var isJoined = false; // if the user is in the game mode
 var scores = new Map(); // hash for mapping the game score with [ username : score_value]
@@ -212,6 +214,9 @@ function createPeerConnection(id) {
                     // let every peer the possibility to start the game
                     toggleGameButton(false) 
                     break;
+                case "votePainter":
+                    votePainter(data)
+                    break;
                 default:
                     console.log('Message not supported');
                     break;
@@ -248,6 +253,9 @@ function addPeerConnection(id) {
                 // let every peer the possibility to start the game
                 toggleGameButton(false) 
                 break;
+            case "votePainter":
+                votePainter(data)
+                break;
             default:
                 console.log('Message not supported');
                 break;
@@ -280,7 +288,9 @@ function addPeerConnection(id) {
 /*   Functions for Messages Management    */
 /* -------------------------------------- */
 
+// sendUsername handler for Sender Peer
 function sendUsernameSender(data){
+    console.log('------------- Send Username Sender -------------')
     if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
         console.log('Invalid message format')
     } else {
@@ -298,9 +308,12 @@ function sendUsernameSender(data){
             modifyContent(usernames)
         }
     }
+    console.log('------------------------------------------------')
 }
 
+// sendUsername handler for Receiver Peer
 function sendUsernameReceiver(data){
+    console.log('------------- Send Username Receiver -------------')
     if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
         console.log('Invalid message format')
     } else if (isStarted) {
@@ -331,10 +344,13 @@ function sendUsernameReceiver(data){
             modifyContent(usernames)
         }
     }
+    console.log('--------------------------------------------------')
 
 }
 
+// Join game handler for Receiver peer
 function joinGameReceiver(data){
+    console.log('------------- Join Game on Receiver -------------')
     if (data.username == undefined) {
         console.log('Invalid message format')
     } else {
@@ -365,9 +381,12 @@ function joinGameReceiver(data){
         }
         updateScore(scores)
     }
+    console.log('--------------------------------------------------')
 }
 
+// Joining game handle for sender peer
 function joinGameSender(data){
+    console.log('------------- Join Game on Sender -------------')
     if (data.username == undefined) {
         console.log('Invalid message format')
     } else {
@@ -399,15 +418,33 @@ function joinGameSender(data){
         }
         updateScore(scores)
     }
+    console.log('-----------------------------------------------')
+}
+
+// Propagation of the vote system on the Painter decision
+function votePainter(data){
+    console.log('------------------- Vote Painter -------------------')
+    if(data.id == null || data.candidate == null || data.candidate == undefined || data.id == undefined){
+        console.log('Illegal format error')
+    } else {
+        numVotes += 1
+        console.log('Received: ' + data.candidate + " as a new vote")
+        voteList.set(data.candidate, (voteList.get(data.candidate) + 1))
+        console.log('Current number of votes: ' + numVotes)
+        // this will be true for every peer except the last one
+        checkVoteResults()
+    }
+    console.log('------------------------------------------------------')
 }
 
 
 // Send a message in the meshs
 function sendBroadcast(message) {
+    console.log('------------- Send Broadcast Message -------------')
     if (message.type == "undefined") {
         console.log('Illegal format error')
     } else {
-        console.log('Broadcast calling')
+        console.log('Broadcast calling for message: ' + message.type)
         console.log('Number of peers to broadcast the message: ' + peers.size)
         console.log(peers)
         var connections = peers.values()
@@ -417,6 +454,7 @@ function sendBroadcast(message) {
             connection.send(message)
         }
     }
+    console.log('-------------------------------------------------')
 }
 
 
@@ -426,7 +464,11 @@ function removePeer() {
     peerId = null;
     isJoined = false
     isStarted = false
+    isVoted = false
     counterGameMode = 0
+    vote = null
+    numVotes = 0
+    voteList = new Map()
     usernames = new Map();
     ids = new Array();
     peers = new Map();
@@ -438,9 +480,57 @@ function removePeer() {
 /*   Game Management for Peer   */
 /* ---------------------------- */
 
+// This function set your own vote and propagate it to other peers
+function initVote(){
+    console.log('-------- Init Vote -----------')
+    isVoted = true
+    numVotes += 1
+    vote = usernames.get(peers.keys().next().value) // first connection
+    voteList.set(vote, (voteList.get(vote) + 1))
+    console.log('Current candidates size: ' + voteList.size)
+    console.log('You voted: ' + vote)
+    console.log('-------------------------------')
+    sendBroadcast({
+        type:"votePainter",
+        candidate : vote,
+        id : peerId,
+    })
+    // this is true only in the last peer who define the last vote
+    checkVoteResults()
+
+}
+
+function checkVoteResults(){
+    if(numVotes >= peers.size + 1){
+        console.log('----------- Vote End -----------')
+        var max = 0
+        var iteratorVote = voteList.keys()
+        var winner;
+        for(let i = 0; i < voteList.size; i++){
+            var candidate = iteratorVote.next().value
+            var candidateVote = voteList.get(candidate)
+            console.log('Candidate ' + candidate + " has " + candidateVote + " votes")
+            if(candidateVote > max){
+                max = candidateVote
+                winner = candidate
+            }
+        }
+        // defines if this peer is the winner or a simple competitor 
+        if(winner == _username){
+            // you are the winner
+            console.log('You are the new painter')
+            updatePainter()
+
+        } else {
+            console.log('Candidate painter is: ' + winner)
+            updateCompetitor()
+        }
+        console.log('--------------------------------')
+    }
+}
 // this function is the game init session on the current peer
 function initGame() {
-    console.log('Init the game!')
+    console.log('------------- Init the game -------------')
     console.log(_username + " joining in the game")
     // changing dynamic content
     initGameContent(_username, roomId)
@@ -459,18 +549,46 @@ function initGame() {
         gameMode: true,
         id: peerId
     }
+    console.log('---------------------------------------')
     sendBroadcast(message)
 
 }
 
-
+// Setting of the score table on the init of game mode
 function scoreSetting(){
+    console.log('------------- Score Settings -------------')
     if(!isStarted){
-        var usernamesIterator = usernames.values()
+        var usernamesIterator = usernames.values() 
+        voteList.set(_username, 0)
         for(let i = 0; i < peers.size; i++){
-            scores.set(usernamesIterator.next().value, 0)
+            var player = usernamesIterator.next().value
+            console.log('Init scores and votes for ' + player)
+            scores.set(player, 0)
+            voteList.set(player, 0)
         }
+    } else {
+        console.log('isStarted is true, so the game can not have new entries')
     }
+    peerInfo()
+    console.log('-----------------------------------------')
+}
+
+// Service function to display in the console the own information
+function peerInfo(){
+    console.log('------------- Peers info -------------')
+    peersIds = peers.keys()
+    console.log('Peers connected in the same mesh:')
+    for(let i = 0; i < peers.size; i++){
+        var currentId = peersIds.next().value
+        console.log("Peer id" + currentId + " => " + usernames.get(currentId))
+        console.log('Score of ' + usernames.get(currentId) + " is " + scores.get(usernames.get(currentId)))
+        if(voteList.get(usernames.get(currentId)) == undefined){
+            voteList.set(usernames.get(currentId), 0)
+        }
+        console.log('Votes of ' + usernames.get(currentId) + " are " + voteList.get(usernames.get(currentId)))
+    }
+    console.log('--------------------------------------')
+
 }
 
 /* ---------------------------- */

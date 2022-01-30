@@ -51,6 +51,7 @@ lobbyButton.addEventListener('click', function(event){
 
 startButton.addEventListener('click', function(event){
     console.log('Start Button clicked')
+    initVote()
     // TO-DO: Setup the painter randomly and propagate it to each peer
     // than trasform the view of the painter peer in the correct one
     // Setup for the Guess word and propagate guess system
@@ -74,6 +75,7 @@ function modifyContent(usernames) {
     }
 }
 
+// Changing the game content to the default view
 function initGameContent(username, room){
     leftTitle = document.getElementById('left-title')
     leftTitle.innerHTML = "Room: " + room
@@ -84,6 +86,7 @@ function initGameContent(username, room){
     notifyEnter(username)
 }
 
+// Notify in the chat that username is enter in the game room
 function notifyEnter(username){
     chatContent = document.getElementById('content-chat')
     var element = document.createElement('div')
@@ -95,6 +98,7 @@ function notifyEnter(username){
     chatContent.appendChild(element)
 }
 
+// Updating the score view
 function updateScore(scores){
     gameScore = document.getElementById('game-score')
     gameScore.value = "\nScore\n" +
@@ -106,12 +110,21 @@ function updateScore(scores){
     }
 }
 
+function updatePainter(){
+    console.log('Painter view...')
+}
+
+function updateCompetitor(){
+    console.log('Competitor view...')
+}
+
 // Changing the default view to Home Mode
 window.addEventListener('load', (event) => {
     // default view is on the homepage
     toggleHomepage()
 });
 
+// Changing the view to Homepage Model
 function toggleHomepage() {
     // default view is on the homepage
     console.log('Loading homepage content')
