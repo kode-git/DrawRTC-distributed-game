@@ -22,7 +22,7 @@
         <span class="navbar-brand">Quick, DrawRTC</span>
         <ul class="nav navbar-nav navbar-right">
             <li class="nav-item text-white info-el ">
-                <a style="color: #ffc107;" data-toggle="modal" data-target="#modal-info"> Info </a>
+                <a style="color:#ffc107; cursor:pointer;" class="info-el" data-toggle="modal" data-target="#modal-info"> Info </a>
             </li>
         </ul>
     </nav>
@@ -34,7 +34,7 @@
             <label id="subtitle-home">
                 Annoying to play with the IA? Try the game with your friends and get the highest score! More info about
                 game
-                rules in the <span data-toggle="modal" data-target="#modal-info" class="info-el"><a>following
+                rules in the <span style="cursor:pointer" data-toggle="modal" data-target="#modal-info" class="info-el"><a>following
                         link</a></span>. Good luck and have fun!
             </label>
             <hr>
@@ -129,7 +129,7 @@
         <div id="lobby-background">
             <div id="title-lobby">Lobby Room:
                 <button id="lobby-name" data-toggle="tooltip" data-placement="top" title="Share the link!"></button>
-                <!-- TODO: It is a dynamic content-->
+                <!-- It is a dynamic content-->
             </div>
         </div>
         <form id="form-home">
@@ -162,6 +162,7 @@
         <nav id="game-nav" class="navbar">
             <!-- Navbar content -->
             <button class="btn" id="start-game">Start Game!</button>
+            <span id="waiting" class="navbar-brand"></span>
             <span id="word-guess" class="navbar-brand"></span>
             <ul id="game-title" class="nav justify-content-center">
                 <li id="left-title"></li>
@@ -169,7 +170,7 @@
         </nav>
         <div class="frame">
             <div class="left">
-                <div class="sidebar">
+                <div id="painter-tools" class="sidebar">
                     <a><i class="material-icons sidebar-icons">
                             question_mark
                         </i></a>
@@ -225,18 +226,19 @@
                     </main>
 
                     <form class="msger-inputarea ">
-                        <input type="text " class="msger-input " placeholder="Enter your message... ">
-                        <div class="btn msger-send-btn box-shadow ">Send</div>
+                        <input id="input-chat" type="text " class="msger-input " placeholder="Enter your message... ">
+                        <div id="send-chat" class="btn msger-send-btn box-shadow ">Send</div>
                     </form>
                 </section>
             </div>
         </div>
     </div>
+
     <!-- End Game room -->
     <!-- General staff -->
     <!-- Modal Info -->
-    <div id="modal-info " class="modal fade bd-example-modal-ex-lg " role="dialog " aria-hidden="true ">
-        <div class="modal-dialog modal-dialog-scrollable ">
+    <div id="modal-info" class="modal fade bd-example-modal-ex-lg "tabindex="-1" role="dialog" aria-labelledby="modal-info" aria-hidden="true ">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable ">
 
             <!-- Modal content-->
             <div class="modal-content ">
@@ -299,6 +301,7 @@
         integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM "
         crossorigin="anonymous "></script>
     <!-- Internal scripts for peers communication and Javascript management-->
+    <script src="/guess.js"></script>
     <script src="/index.js "></script>
     <script src="/peer.js "></script>
     <script src="/game.js "></script>

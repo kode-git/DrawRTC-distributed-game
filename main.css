@@ -309,6 +309,8 @@ pre {
     padding: 15px;
     border-radius: 15px;
     background: var(--left-msg-bg);
+    background-color: #e4e4e4 !important;
+    color: black !important;
 }
 
 .msg-info {
@@ -384,8 +386,13 @@ pre {
 
 #start-game{
     background-color: white;
-    box-shadow: 5px 7px black;
+    box-shadow: 3px 5px black;
     color: black;
+    cursor: not-allowed;
+}
+
+#start-game:hover{
+    box-shadow:1.5px 2.5px rgba(0, 0, 0, 0.678);
 }
 
 /*  General Style  */

@@ -10,11 +10,14 @@ userList = document.getElementById('user-list')
 mainNavbar = document.getElementById('main-nav')
 playButton = document.getElementById('play-button')
 startButton = document.getElementById('start-game')
+sendButton = document.getElementById('send-chat')
+inputChat = document.getElementById('input-chat')
+avatarNumber = randomIntFromInterval(1,9)
 
 // Copying service for room sharing with temporal notify on the screen
 lobbyName.addEventListener('click', (event) => {
     var roomName = lobbyName.innerHTML
-        // Create new element
+    // Create new element
     var el = document.createElement('textarea');
     // Set value (string to be copied)
     el.value = roomName;
@@ -32,31 +35,104 @@ lobbyName.addEventListener('click', (event) => {
     var styler = document.createElement("div");
     styler.setAttribute("style", "background-color: #f7f7f7; padding: 2px -100px; color: black; display: table; text-align: center; margin: auto; width:50%; margin: 1px solid black; border-radius: 10px; box-shadow: 5px 7px rgb(0, 0, 0); ");
     styler.innerHTML = "Room name copied!";
-    setTimeout(function() {
+    setTimeout(function () {
         styler.parentNode.removeChild(styler);
     }, 2000);
     document.body.appendChild(styler);
 })
 
-lobbyExitButton.addEventListener('click', function(e) {
+lobbyExitButton.addEventListener('click', function (e) {
     console.log('Removing peer from the lobby...')
     removePeer();
     toggleHomepage();
 })
 
-lobbyButton.addEventListener('click', function(event){
+lobbyButton.addEventListener('click', function (event) {
     console.log('Joining in the game...')
     initGame()
 })
 
-startButton.addEventListener('click', function(event){
+startButton.addEventListener('click', function (event) {
     console.log('Start Button clicked')
+    startButton.style.display = 'none'
+    document.getElementById('waiting').innerHTML = "Waiting other players..."
     initVote()
-    // TO-DO: Setup the painter randomly and propagate it to each peer
-    // than trasform the view of the painter peer in the correct one
-    // Setup for the Guess word and propagate guess system
 })
 
+sendButton.addEventListener('click', function (event) {
+    submitMessage()
+})
+
+// Avoid the submit message for refresh the page (losing the session)
+$('#input-chat').keypress(
+    function (event) {
+        if (event.which == '13') {
+            event.preventDefault()
+            submitMessage()
+        }
+    });
+
+// Submit the message on the chat
+function submitMessage() {
+    if ($('#input-chat').val() == "") {
+        console.log('Not message taken, the field is void')
+    } else {
+        var message = $('#input-chat').val()
+        console.log("Message sent: " + message)
+        $('#input-chat').val("") // clear the field
+        // make a new field in the chat
+        putMessage(message) // own view
+        propagateChatMessage(avatarNumber, message) // other views
+    }
+}
+
+// This function is to put an own message in the chat
+function putMessage(message) {
+    var contentChat = document.getElementById('content-chat')
+    var tag = document.createElement('div') // right-msg div
+    // adding class to tag
+    tag.classList.add('msg')
+    tag.classList.add('right-msg')
+    var avatar = document.createElement('div') // avatar div
+    avatar.classList.add('msg-img')
+    avatar.style.backgroundImage = "url(avatars/" + avatarNumber +".png)"
+    var bubble = document.createElement('div') // msg-bubble div
+    bubble.classList.add('msg-bubble')
+
+    var messageContent = document.createElement('div') // msg-text
+    messageContent.classList.add('msg-text')
+    var text = document.createTextNode("You: " + message)
+    messageContent.appendChild(text)
+    bubble.appendChild(messageContent)
+    tag.appendChild(avatar) // Avatar before the bubble
+    tag.appendChild(bubble) // Bubble after the avatar
+    contentChat.appendChild(tag)
+
+}
+
+
+function putPropagatedMessage(avatar, username, message){
+    var contentChat = document.getElementById('content-chat')
+    var tag = document.createElement('div') // right-msg div
+    // adding class to tag
+    tag.classList.add('msg')
+    tag.classList.add('left-msg')
+    var avatarContent = document.createElement('div') // avatar div
+    avatarContent.classList.add('msg-img')
+    avatarContent.style.backgroundImage = "url(avatars/" + avatar +".png)"
+    var bubble = document.createElement('div') // msg-bubble div
+    bubble.classList.add('msg-bubble')
+
+    var messageContent = document.createElement('div') // msg-text
+    messageContent.classList.add('msg-text')
+    var text = document.createTextNode(username  + ": " + message)
+    messageContent.appendChild(text)
+    bubble.appendChild(messageContent)
+    tag.appendChild(avatarContent) // Avatar before the bubble
+    tag.appendChild(bubble) // Bubble after the avatar
+    contentChat.appendChild(tag)
+
+}
 // Given the username maps, fill the content with the usernames list
 function modifyContent(usernames) {
     console.log('Updating the content of the username list')
@@ -67,8 +143,8 @@ function modifyContent(usernames) {
     }
     console.log(content)
     userList.value = content
-    // TO-DO: Change it to 3
-    if(usernames.size >= 1){
+    // Milestone: How many players to init setup
+    if (usernames.size >= 3) {
         lobbyButton.disabled = false
     } else {
         lobbyButton.disabled = true
@@ -76,7 +152,7 @@ function modifyContent(usernames) {
 }
 
 // Changing the game content to the default view
-function initGameContent(username, room){
+function initGameContent(username, room) {
     leftTitle = document.getElementById('left-title')
     leftTitle.innerHTML = "Room: " + room
     startGameButton = document.getElementById('start-game')
@@ -87,7 +163,7 @@ function initGameContent(username, room){
 }
 
 // Notify in the chat that username is enter in the game room
-function notifyEnter(username){
+function notifyEnter(username) {
     chatContent = document.getElementById('content-chat')
     var element = document.createElement('div')
     element.classList.add('msg')
@@ -99,30 +175,32 @@ function notifyEnter(username){
 }
 
 // Updating the score view
-function updateScore(scores){
+function updateScore(scores) {
     gameScore = document.getElementById('game-score')
     gameScore.value = "\nScore\n" +
-    "-----------\n";
+        "-----------\n";
     var usernames = scores.keys()
-    for(let i = 0; i < scores.size; i++){
+    for (let i = 0; i < scores.size; i++) {
         var username = usernames.next().value
         gameScore.value += "\n" + username + ": " + scores.get(username) + " points"
     }
 }
 
-function updatePainter(){
+// Update the painter view
+function updatePainter() {
     console.log('Painter view...')
+    document.getElementById('waiting').innerHTML = ""
+    document.getElementById('painter-tools').style.display = 'block'
+    removePainterScore()
 }
 
-function updateCompetitor(){
+// Update competitor view
+function updateCompetitor() {
     console.log('Competitor view...')
-}
+    document.getElementById('painter-tools').style.display = 'none'
+    document.getElementById('waiting').innerHTML = ""
 
-// Changing the default view to Home Mode
-window.addEventListener('load', (event) => {
-    // default view is on the homepage
-    toggleHomepage()
-});
+}
 
 // Changing the view to Homepage Model
 function toggleHomepage() {
@@ -155,22 +233,25 @@ function toggleGame() {
     lobby.style.display = 'none'
     mainNavbar.style.display = 'none'
     game.style.display = 'block'
+    document.getElementById('painter-tools').style.display = 'none'
 }
 
 // change the availability of the game mode
-function toggleGameButton(value){
+function toggleGameButton(value) {
     console.log('Toggle Game Button started...')
     // manual toggle
-    if(value != undefined){
+    if (value != undefined) {
         startButton.disabled = value
-        if(!value){
+        if (!value) {
             startButton.innerHTML = "Start Game"
+            startButton.style.cursor = "pointer"
         } else {
             startButton.inneHTML = "Waiting players"
+            startButton.style.cursor = "not-allowed"
         }
     } else {
         // automatic toggle
-        if(startButton.disabled){
+        if (startButton.disabled) {
             startButton.disabled = false
             startButton.innerHTML = "Start Game"
         } else {
@@ -179,4 +260,15 @@ function toggleGameButton(value){
         }
     }
 }
+
+// Random integer between min and max int value
+function randomIntFromInterval(min, max) { // min and max included 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+}
+
+// Changing the default view to Home Mode
+window.addEventListener('load', (event) => {
+    // default view is on the homepage
+    toggleHomepage()
+});
 
