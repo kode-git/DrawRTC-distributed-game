@@ -163,7 +163,7 @@
             <!-- Navbar content -->
             <button class="btn" id="start-game">Start Game!</button>
             <span id="waiting" class="navbar-brand"></span>
-            <span id="word-guess" class="navbar-brand"></span>
+            <b><span id="word-guess" class="navbar-brand"></span></b>
             <ul id="game-title" class="nav justify-content-center">
                 <li id="left-title"></li>
             </ul>
@@ -171,7 +171,7 @@
         <div class="frame">
             <div class="left">
                 <div id="painter-tools" class="sidebar">
-                    <a><i class="material-icons sidebar-icons">
+                    <a data-toggle="modal" data-target="#modal-info"><i class="material-icons sidebar-icons">
                             question_mark
                         </i></a>
                     <a><i class="material-icons sidebar-icons">
@@ -257,7 +257,7 @@
                             the end button.</u></p>
                     <hr>
                     <h4 id="painter-modal ">Painter role</h4>
-                    <p><b>The word to guess is on the upright of the painter interface</b>. There are no time limits for
+                    <p><b>The word to guess is on middle of the painter navbar</b>. There are no time limits for
                         him, he can draw and cancel scribbles on the paper whenever. The scoring system doesn't include
                         him for the game session, but he can
                         arbitrarily decide to stop the game, fix the final scores and, consequently, define the winner
@@ -271,7 +271,7 @@
                         winner.</p>
                 </div>
                 <div class="modal-footer ">
-                    <button type="button " class="btn btn-warning btn-shadow " data-dismiss="modal ">Close</button>
+                    <button type="button " class="btn btn-warning btn-shadow " data-dismiss="modal">Close</button>
                 </div>
             </div>
 

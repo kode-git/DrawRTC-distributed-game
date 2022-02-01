@@ -23,7 +23,7 @@ var ids = new Array() // peer id in the mesh
 var peers = new Map(); // hash for mapping peer id with peers [ peerId : connection ]
 var isInitiator; // identify if the current client is the creator of the room
 var vote; // Vote of the painter 
-var gameMode = false; // Number of players in game mode
+var gameMode = false; // if user is in game mode
 var counterGameMode = 0;
 var painter; // the current painter of the game
 var isVoted = false; // If the user is not voted
@@ -32,6 +32,7 @@ var voteList = new Map(); // list of votes [ username : candidateVote]
 var isStarted = false; // if the game is started
 var isJoined = false; // if the user is in the game mode
 var scores = new Map(); // hash for mapping the game score with [ username : score_value]
+var guessWord; // the guess word set on painter and check on chat messages from competitor
 createRoom = document.getElementById('create-button') // create button
 createRoom.addEventListener("click", createGame); // create Lobby as the initializator
 joinRoom = document.getElementById('join-button') // join button
@@ -224,6 +225,9 @@ function createPeerConnection(id) {
                 case "sendChatMessage":
                     sendChatMessage(data)
                     break;
+                case "guessed":
+                    guessed(data)
+                    break;
                 default:
                     console.log('Message not supported');
                     break;
@@ -268,6 +272,9 @@ function addPeerConnection(id) {
                 break;
             case "sendChatMessage":
                 sendChatMessage(data)
+                break;
+            case "guessed":
+                guessed(data)
                 break;
             default:
                 console.log('Message not supported');
@@ -480,13 +487,52 @@ function sendChatMessage(data) {
         data.username == null  ||  data.id == undefined
         || data.avatar == undefined) {
         console.log('Illegal format error')
-        console.log(data.username)
-        console.log(data.content)
-        console.log(data.avatar)
-        console.log(data.id)
     } else {
+        if(gameMode)
         putPropagatedMessage(data.avatar, data.username, data.content)
+
+        if(painter != undefined && painter != null && painter == _username){
+            // this is only for the painter view
+            parseGuess(data.username, data.content, guessWord)
+        }
     }
+}
+
+// Propagation of guessed event from painter to competitors
+function guessed(data){
+    if(data.player == undefined || data.id == undefined || data.word == undefined){
+        console.log('Illegal format error')
+    } else {
+        console.log('------------ Guessed --------------')
+        if(data.player == _username){
+            // you guessed the word!
+            Swal.fire({
+                icon: 'info',
+                title: 'Guessed It!',
+                text: 'Congratulation, you guessed the word!',
+                confirmButtonColor: '#f0ad4e',
+            })
+            
+        } else {
+            // an other player guessed the word
+            Swal.fire({
+                icon: 'info',
+                title: data.player + ' guessed It!',
+                text: data.player + ' guessed the word! ',
+                confirmButtonColor: '#f0ad4e',
+            })
+        }
+
+        if(scores.get(data.player) == undefined){
+            console.log('Error, the user is not legal, the peer' + data.id + ' did a cheat message!')
+        } else {
+        // local setting
+        scores.set(data.player, scores.get(data.player)+1)
+        updateScore(scores)
+        }
+        console.log('------------------------------------')
+    }
+
 }
 
 // Send a message in the meshs
@@ -531,6 +577,39 @@ function removePeer() {
 /*   Game Management for Peer   */
 /* ---------------------------- */
 
+
+// parse guess is only in the painter, and check if an user guessed the word
+function parseGuess(username, message, guess){
+    if(message.includes(guess)){
+        // competitor written the guess word
+        console.log("------------- Parse Guess -------------")
+        console.log('Player ' + username + " guess the word")
+        console.log('Word was: ' + guess)
+        Swal.fire({
+            icon: 'info',
+            title: 'Guessed It!',
+            text: username + ' guessed the word!',
+            confirmButtonColor: '#f0ad4e',
+        })
+        // local setting
+        scores.set(username, scores.get(username)+1)
+        updateScore(scores)
+        // propagate new settings
+        sendBroadcast({
+            type: "guessed",
+            word : guess,
+            player : username,
+            id : peerId,
+        })
+        guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
+        updateGuessContent(guessWord)
+        // TO-DO: Control on winner here and in Guessed function
+        console.log("---------------------------------------")
+
+    } else {
+        // do nothing
+    }
+}
 
 // This function remove the painter score from the table, that's because the painter is
 // not part of the game but is the guess word creator (on drawing)
@@ -587,6 +666,9 @@ function checkVoteResults() {
         if (winner == _username) {
             // you are the winner
             console.log('You are the new painter')
+            // setting the initial guess word
+            guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
+            console.log('Guess word is: ' + guessWord)
             updatePainter()
 
         } else {
@@ -597,6 +679,15 @@ function checkVoteResults() {
     }
 }
 
+// Setting guess word for external use
+function setGuessWord(guess){
+    guessWord = guess
+}
+
+// Getting guess word for external use
+function getGuessWord(){
+    return guessWord
+}
 // this function is the game init session on the current peer
 function initGame() {
     console.log('------------- Init the game -------------')

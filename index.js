@@ -188,8 +188,10 @@ function updateScore(scores) {
 
 // Update the painter view
 function updatePainter() {
+    var guess = getGuessWord()
     console.log('Painter view...')
-    document.getElementById('waiting').innerHTML = ""
+    document.getElementById('waiting').innerHTML = "You are the painter. Quick, draw!"
+    document.getElementById('word-guess').innerHTML = "Guess Word: " + guess
     document.getElementById('painter-tools').style.display = 'block'
     removePainterScore()
 }
@@ -200,6 +202,11 @@ function updateCompetitor() {
     document.getElementById('painter-tools').style.display = 'none'
     document.getElementById('waiting').innerHTML = ""
 
+}
+
+
+function updateGuessContent(guess){
+    document.getElementById('word-guess').innerHTML = "Guess Word: " + guess
 }
 
 // Changing the view to Homepage Model
