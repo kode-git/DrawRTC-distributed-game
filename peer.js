@@ -17,6 +17,8 @@ var socket = io.connect() // socket opening
 var _username; // Username of the player
 var peerId; // your own id, the owned peer is not included in peers
 var peer; // your peer informations
+var priority; // priority peer level for the priority algorthm
+var priorities = new Map(); // priorities for peers [peerId : priority]
 var isRemoved = false; // if the node is remove (client with no peer connection)
 var usernames = new Map(); // hash for mapping peer id with their own usernames [peerId : username ]
 var ids = new Array() // peer id in the mesh
@@ -27,6 +29,8 @@ var gameMode = false; // if user is in game mode
 var counterGameMode = 0;
 var painter; // the current painter of the game
 var isVoted = false; // If the user is not voted
+var isWaitingVote = false // If the user press the start button and wait other votes
+var isWaitingJoin = false // If the user waiting joining in game but the user left
 var numVotes = 0; // defined the number of votes on the peer
 var voteList = new Map(); // list of votes [ username : candidateVote]
 var isStarted = false; // if the game is started
@@ -48,6 +52,7 @@ function settingId() { return '_' + Math.random().toString(36).substr(2, 9); }
 
 function createGame() {
     var username = document.getElementById("create-username").value
+    priority = 0
     if (username == "" || username == null) {
         Swal.fire({
             icon: 'error',
@@ -88,62 +93,89 @@ function joinGame() {
 /*  Socket Handlers  */
 /* ----------------- */
 
-// Init event handler for the setup of the initiator and notify the correct creation of the new room
-socket.on('init', function (room, client) {
-    console.log('Init on the client: ' + client)
-    console.log('Room: ' + room + " is created by " + _username)
-    isInitiator = true
-    roomId = room
-    peerId = client
-    usernames.set(peerId, _username)
-    scores.set(_username, 0)
-    modifyContent(usernames)
-    createPeerConnection(client)
-    // going to the lobby and waiting for new users
-    toggleLobby(room, _username)
-    // peer are not able here because the creator is alone in the room
-})
+function initSocketHandlers() {
+    // Init event handler for the setup of the initiator and notify the correct creation of the new room
 
-socket.on("joined", function (room, players, id) {
-    console.log('Your id: ' + id)
-    peerId = id;
-    roomId = room;
-    console.log('Current players:')
-    for (let i = 0; i < players.length; i++) {
-        console.log('User ' + i + ': ' + players[i])
-    }
-    roomId = room
-    toggleLobby(room, _username)
-    if (!isInitiator) {
-        createPeerConnection(id)
-    }
-})
+    /* ---------------------------- */
+    /*     Connection Management    */
+    /* ---------------------------- */
 
-socket.on('new', function (room, client) {
-    // making a new Peer Connection with the client
-    if (peer == null) {
-        // illegal peer
-        console.log('Error: Illegal access in the room')
-    } else {
-        console.log('Client ' + client + " joined in the room " + room)
-        ids.push(client) // pushing the client id
-        roomId = room // setting room in case it isn't
-        addPeerConnection(client);
-    }
-})
+    socket.on('init', function (room, client) {
+        console.log('Init on the client: ' + client)
+        console.log('Room: ' + room + " is created by " + _username)
+        isInitiator = true
+        roomId = room
+        peerId = client
+        usernames.set(peerId, _username)
+        scores.set(_username, 0)
+        modifyContentLobby(usernames)
+        createPeerConnection(client)
+        // going to the lobby and waiting for new users
+        toggleLobby(room, _username)
+        // peer are not able here because the creator is alone in the room
+    })
 
-socket.on('leave', function (room, client) {
-    console.log('Leave notified...')
-    console.log('Client ' + client + " is leaving from room" + room)
-    usernames.delete(client)
-    scores.delete(client)
-    peers.delete(client)
-    ids = ids.filter(function (value, index, arr) {
-        return value != client
-    });
-    modifyContent(usernames)
-})
+    socket.on("joined", function (room, players, id) {
+        console.log('Your id: ' + id)
+        peerId = id;
+        roomId = room;
+        console.log('Current players:')
+        for (let i = 0; i < players.length; i++) {
+            console.log('User ' + i + ': ' + players[i])
+        }
+        roomId = room
+        console.log('You are: ' + _username)
+        toggleLobby(room, _username)
+        if (!isInitiator) {
+            createPeerConnection(id)
+        }
+    })
 
+    socket.on('new', function (room, client) {
+        // making a new Peer Connection with the client
+        if (peer == null) {
+            // illegal peer
+            console.log('Error: Illegal access in the room')
+        } else {
+            console.log('Client ' + client + " joined in the room " + room)
+            roomId = room // setting room in case it isn't
+            addPeerConnection(client);
+        }
+    })
+
+    socket.on('leave', function (room, client) {
+        manageLeave(room, client)
+    })
+
+    /* ---------------------------- */
+    /*   Error Connection Handlers  */
+    /* ---------------------------- */
+
+    // Error handler for the alreadyExists game room during the create mode
+    socket.on("alreadyExists", function (room) {
+        console.log("Game " + room + " already exists, need to retry create a new one")
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Room ' + room + ' already exists, retry to create a new one',
+            confirmButtonColor: '#f0ad4e',
+        })
+    })
+
+    // Error handler for the joining on a game room when it doesn't exist
+    socket.on("joinError", function (room) {
+        console.log("Room " + room + ", do not exist, you must create it!")
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Game ' + room + ' doesn\'t exists, please copy the correct id or create a new game',
+            confirmButtonColor: '#f0ad4e',
+        })
+    })
+
+}
+
+initSocketHandlers()
 
 /* ----------------- */
 /*  Peers Functions  */
@@ -178,10 +210,13 @@ function createPeerConnection(id) {
     peer.on("connection", function (connection) {
         connection.on('open', function () {
             console.log('Adding new connection with the peer: ' + peerId)
+            priority = peers.size + 1 + randomIntFromInterval(1, 2147483647)
             connection.send({
                 type: "sendUsername",
                 username: _username,
                 id: peerId,
+                priorityPeer: priority,
+                mode: gameMode,
             })
             peers.set(connection.peer, connection)
         })
@@ -200,7 +235,7 @@ function createPeerConnection(id) {
             ids = ids.filter(function (value, index, arr) {
                 return value != id
             })
-            modifyContent(usernames)
+            modifyContentLobby(usernames)
         })
 
 
@@ -254,6 +289,8 @@ function addPeerConnection(id) {
             type: "sendUsername",
             username: _username,
             id: peerId,
+            priorityPeer: priority,
+            mode: gameMode,
         })
     })
 
@@ -302,7 +339,7 @@ function addPeerConnection(id) {
         ids = ids.filter(function (value, index, arr) {
             return value != id
         })
-        modifyContent(usernames)
+        modifyContentLobby(usernames)
     })
 
     connection.on('disconnected', function () {
@@ -334,7 +371,25 @@ function sendUsernameSender(data) {
             usernames.set(data.id, data.username)
             // maybe if it is double
             scores.set(data.username, 0)
-            modifyContent(usernames)
+            priorities.set(data.id, data.priorityPeer)
+            ids.push(data.id) // pushing the client id
+            console.log('Priority of ' + data.id + " is: " + data.priorityPeer)
+            if (data.mode) {
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'The game is started, you can\'t join in the room.',
+                    confirmButtonColor: '#f0ad4e',
+                })
+                toggleHomepage()
+                socket.disconnect()
+                socket = io.connect()
+                initSocketHandlers()
+                resetGameVariables()
+                removePeer()
+            }
+            modifyContentLobby(usernames)
         }
     }
     console.log('------------------------------------------------')
@@ -370,7 +425,24 @@ function sendUsernameReceiver(data) {
             usernames.set(data.id, data.username)
             // maybe if it is double
             scores.set(data.username, 0)
-            modifyContent(usernames)
+            priorities.set(data.id, data.priorityPeer)
+            ids.push(data.id) // pushing the client id
+            console.log('Priority of ' + data.id + " is: " + data.priorityPeer)
+            if (data.mode) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'The game is started, you can\'t join in the room.',
+                    confirmButtonColor: '#f0ad4e',
+                })
+                toggleHomepage()
+                socket.disconnect()
+                socket = io.connect()
+                initSocketHandlers()
+                resetGameVariables()
+                removePeer()
+            }
+            modifyContentLobby(usernames)
         }
     }
     console.log('--------------------------------------------------')
@@ -458,7 +530,7 @@ function votePainter(data) {
     } else {
         numVotes += 1
         console.log('Received: ' + data.candidate + " as a new vote")
-        if(data.priority){
+        if (data.priority) {
             console.log('Vote is on priority (given by the initiator)')
             voteList.set(data.candidate, (voteList.get(data.candidate) + 1001))
         } else {
@@ -525,8 +597,8 @@ function guessed(data) {
             // local setting
             scores.set(data.player, scores.get(data.player) + 1)
             updateScore(scores)
-            if(scores.get(data.player) == 2){
-                if(data.player == _username){
+            if (scores.get(data.player) == 2) {
+                if (data.player == _username) {
                     Swal.fire({
                         icon: 'info',
                         title: 'You are the winner!!',
@@ -553,7 +625,7 @@ function guessed(data) {
                         text: 'Congratulation, you guessed the word!',
                         confirmButtonColor: '#f0ad4e',
                     })
-        
+
                 } else {
                     // an other player guessed the word
                     Swal.fire({
@@ -613,6 +685,8 @@ function removePeer() {
     isStarted = false
     isVoted = false
     gameMode = false
+    isWaitingVote = false
+    isWaitingJoin = false
     counterGameMode = 0
     vote = null
     numVotes = 0
@@ -693,6 +767,8 @@ function resetGameVariables() {
     _username = null
     roomId = null
     vote = null
+    isWaitingVote = false
+    isWaitingJoin = false
     numVotes = 0
     voteList = new Map()
     usernames = new Map();
@@ -705,7 +781,7 @@ function resetGameVariables() {
     cleanContent()
     // Manage connection
     var connections = peers.values()
-    for(let i = 0; i < peers.size; i++){
+    for (let i = 0; i < peers.size; i++) {
         var connection = connections.next().value
         connection.close()
     }
@@ -725,14 +801,26 @@ function removePainterScore() {
     })
 }
 
+function resetVoteSystem() {
+    console.log('--------- Reset Vote System ----------')
+    isVoted = false
+    isWaitingVote = false
+    numVotes = 0
+    vote = null
+    voteList = new Map()
+    console.log('Current player who can vote: ' + (peers.size + 1))
+    resetStartButton();
+    console.log('--------------------------------------')
+}
 
 // This function set your own vote and propagate it to other peers
 function initVote() {
     console.log('-------- Init Vote -----------')
     isVoted = true
+    isWaitingVote = true
     numVotes += 1
     vote = usernames.get(peers.keys().next().value) // first connection
-    if(isInitiator){
+    if (isInitiator) {
         voteList.set(vote, (voteList.get(vote) + 1001))
         console.log('Current candidates size: ' + voteList.size)
         console.log('You voted: ' + vote)
@@ -742,10 +830,10 @@ function initVote() {
             candidate: vote,
             priority: true,
             id: peerId,
-        }) 
+        })
     } else {
         voteList.set(vote, (voteList.get(vote) + 1))
-    
+
         console.log('Current candidates size: ' + voteList.size)
         console.log('You voted: ' + vote)
         console.log('-------------------------------')
@@ -754,7 +842,7 @@ function initVote() {
             candidate: vote,
             priority: false,
             id: peerId,
-        }) 
+        })
     }
 
     // this is true only in the last peer who define the last vote
@@ -765,6 +853,7 @@ function initVote() {
 function checkVoteResults() {
     if (numVotes >= peers.size + 1) {
         console.log('----------- Vote End -----------')
+        isStarted = true
         var max = 0
         var iteratorVote = voteList.keys()
         var winner;
@@ -777,6 +866,8 @@ function checkVoteResults() {
             }
         }
         painter = winner
+        // Remove painter score from table
+        removePainterScore()
         // defines if this peer is the winner or a simple competitor 
         if (winner == _username) {
             // you are the winner
@@ -868,34 +959,90 @@ function peerInfo() {
 
 }
 
+// Setter for isWaitingJoin value for the current peer
+function setWaitingJoin(value) {
+    isWaitingJoin = value
+}
 
-/* ---------------------------- */
-/*   Error Connection Handlers  */
-/* ---------------------------- */
+// Manage the leave of a player
+function manageLeave(room, client) {
+    console.log('Leave notified...')
+    console.log('Client ' + client + " is leaving from room " + room)
+    var leaver = usernames.get(client)
+    console.log('Current data: ')
+    console.log('Usernames size: ' + usernames.size)
+    console.log('Priorities size: ' + priorities.size)
+    console.log('Peers size: ' + peers.size)
+    console.log('Ids collections length: ' + ids.length)
+    if (gameMode) {
+        console.log('Score size: ' + scores.size)
+    }
+    usernames.delete(client)
+    priorities.delete(client)
+    peers.delete(client)
+    ids = ids.filter(function (value, index, arr) {
+        return value != client
+    });
+    console.log('After delete data: ')
+    console.log('Usernames size: ' + usernames.size)
+    console.log('Priorities size: ' + priorities.size)
+    console.log('Peers size: ' + peers.size)
+    console.log('Ids collections length: ' + ids.length)
+    // for the lobby content
+    modifyContentLobby(usernames)
+    if (gameMode) {
+        // we need to update the game view too
+        scores.delete(leaver)
+        console.log('Score size: ' + scores.size)
+        // If the peer waiting to join other peer
+        if (isWaitingJoin) {
+            if ((peers.size + 1) <= counterGameMode && !isStarted) {
+                // peers are in the game mode
+                console.log('Game mode: Available')
+                sendBroadcast({
+                    type: 'availableGame',
+                    id: peerId,
+                })
+                toggleGameButton(false)
 
-// Error handler for the alreadyExists game room during the create mode
-socket.on("alreadyExists", function (room) {
-    console.log("Game " + room + " already exists, need to retry create a new one")
-    Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Room ' + room + ' already exists, retry to create a new one',
-        confirmButtonColor: '#f0ad4e',
-    })
-})
+            } else {
+                toggleGameButton(true)
+            }
+        }
+        // If the peer voted but needs the vote from other peer
+        if (isWaitingVote) {
+            // if you press the start game during disconnection
+            resetVoteSystem() // we need to reset the vote system
+        }
+        // Competitor is the leaver
+        updateScore(scores)
+        if (peers.size + 1 <= 2) {
+            // not enough competitors
+            Swal.fire({
+                icon: 'error',
+                title: 'Room ' + room + ' with not enough players',
+                text: 'Your game was automatically close for not enough players',
+                confirmButtonColor: '#f0ad4e',
+            })
+            toggleHomepage()
+            socket.disconnect()
+            socket = io.connect()
+            initSocketHandlers()
+            resetGameVariables()
+            removePeer()
+        } else {
+            if (leaver != undefined)
+                notifyChat('Player ' + leaver + " is leaving the chat")
+        }
 
-// Error handler for the joining on a game room when it doesn't exist
-socket.on("joinError", function (room) {
-    console.log("Room " + room + ", do not exist, you must create it!")
-    Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Game ' + room + ' doesn\'t exists, please copy the correct id or create a new game',
-        confirmButtonColor: '#f0ad4e',
-    })
-})
 
+        if (leaver == painter) {
+            // priority painter changing
+        }
 
+    }
+
+}
 /* ----------------- */
 /*   Window Handlers */
 /* ----------------- */

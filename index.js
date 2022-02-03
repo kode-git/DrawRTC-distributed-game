@@ -63,6 +63,13 @@ sendButton.addEventListener('click', function (event) {
     submitMessage()
 })
 
+
+// function reset the star button
+function resetStartButton(){
+    startButton.style.display = 'block'
+    document.getElementById('waiting').innerHTML = ""
+}
+
 // Avoid the submit message for refresh the page (losing the session)
 $('#input-chat').keypress(
     function (event) {
@@ -134,7 +141,7 @@ function putPropagatedMessage(avatar, username, message){
 
 }
 // Given the username maps, fill the content with the usernames list
-function modifyContent(usernames) {
+function modifyContentLobby(usernames) {
     console.log('Updating the content of the username list')
     usernameIterator = usernames.values()
     content = "Players:\n"
@@ -170,6 +177,18 @@ function notifyEnter(username) {
     element.classList.add('left-msg')
     element.style.color = "grey"
     var contentElement = document.createTextNode('Player ' + username + " joining in the chat")
+    element.appendChild(contentElement)
+    chatContent.appendChild(element)
+}
+
+// Notify a general message in the game room
+function notifyChat(message){
+    chatContent = document.getElementById('content-chat')
+    var element = document.createElement('div')
+    element.classList.add('msg')
+    element.classList.add('left-msg')
+    element.style.color = "grey"
+    var contentElement = document.createTextNode(message)
     element.appendChild(contentElement)
     chatContent.appendChild(element)
 }
@@ -215,12 +234,18 @@ function updateGuessContent(guess){
 function cleanContent(){
     cleanLobby()
     cleanScore()
+    cleanPainter()
     cleanChat()
 }
 
 // Clean the lobby content at the end of a game (for the local peer)
 function cleanLobby(){
     userList.value = "Players:\n"
+}
+
+// function clean painter dynamic elements (for the local peer)
+function cleanPainter(){
+    document.getElementById('word-guess').innerHTML = ""
 }
 
 // Clean the score table at the end of a game (for the local peer)
@@ -280,18 +305,22 @@ function toggleGameButton(value) {
         if (!value) {
             startButton.innerHTML = "Start Game"
             startButton.style.cursor = "pointer"
+            setWaitingJoin(false)
         } else {
             startButton.inneHTML = "Waiting players"
             startButton.style.cursor = "not-allowed"
+            setWaitingJoin(true)
         }
     } else {
         // automatic toggle
         if (startButton.disabled) {
             startButton.disabled = false
             startButton.innerHTML = "Start Game"
+            setWaitingJoin(false)
         } else {
             startButton.disabled = true
             startButton.inneHTML = "Waiting players"
+            setWaitingJoin(true)
         }
     }
 }
