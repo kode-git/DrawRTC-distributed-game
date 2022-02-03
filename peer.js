@@ -205,6 +205,8 @@ function createPeerConnection(id) {
 
 
         connection.on('data', function (data) {
+            console.log('Data type received: ' + data.type)
+
             switch (data.type) {
                 case "sendUsername":
                     sendUsernameReceiver(data)
@@ -227,6 +229,9 @@ function createPeerConnection(id) {
                     break;
                 case "guessed":
                     guessed(data)
+                    break;
+                case "endGame":
+                    endGame(data)
                     break;
                 default:
                     console.log('Message not supported');
@@ -253,6 +258,7 @@ function addPeerConnection(id) {
     })
 
     connection.on('data', function (data) {
+        console.log('Data type received: ' + data.type)
         switch (data.type) {
             case "sendUsername":
                 sendUsernameSender(data)
@@ -275,6 +281,9 @@ function addPeerConnection(id) {
                 break;
             case "guessed":
                 guessed(data)
+                break;
+            case "endGame":
+                endGame(data)
                 break;
             default:
                 console.log('Message not supported');
@@ -449,7 +458,12 @@ function votePainter(data) {
     } else {
         numVotes += 1
         console.log('Received: ' + data.candidate + " as a new vote")
-        voteList.set(data.candidate, (voteList.get(data.candidate) + 1))
+        if(data.priority){
+            console.log('Vote is on priority (given by the initiator)')
+            voteList.set(data.candidate, (voteList.get(data.candidate) + 1001))
+        } else {
+            voteList.set(data.candidate, (voteList.get(data.candidate) + 1))
+        }
         console.log('Current number of votes: ' + numVotes)
         // this will be true for every peer except the last one
         checkVoteResults()
@@ -463,7 +477,7 @@ function propagateScores(data) {
         console.log('Illegal format error')
     } else {
         // we have already the painter, so we don't need to take it from the message
-        scores.delete(painter)
+        if (scores.get(painter) != undefined || scores.get(painter) != null) scores.delete(painter)
         updateScore(scores)
     }
 }
@@ -484,14 +498,14 @@ function propagateChatMessage(avatarNumber, message) {
 // Propagation of chat message on the receiver peer
 function sendChatMessage(data) {
     if (data.username == undefined || data.content == undefined ||
-        data.username == null  ||  data.id == undefined
+        data.username == null || data.id == undefined
         || data.avatar == undefined) {
         console.log('Illegal format error')
     } else {
-        if(gameMode)
-        putPropagatedMessage(data.avatar, data.username, data.content)
+        if (gameMode)
+            putPropagatedMessage(data.avatar, data.username, data.content)
 
-        if(painter != undefined && painter != null && painter == _username){
+        if (painter != undefined && painter != null && painter == _username) {
             // this is only for the painter view
             parseGuess(data.username, data.content, guessWord)
         }
@@ -499,41 +513,76 @@ function sendChatMessage(data) {
 }
 
 // Propagation of guessed event from painter to competitors
-function guessed(data){
-    if(data.player == undefined || data.id == undefined || data.word == undefined){
+function guessed(data) {
+    if (data.player == undefined || data.id == undefined || data.word == undefined) {
         console.log('Illegal format error')
     } else {
         console.log('------------ Guessed --------------')
-        if(data.player == _username){
-            // you guessed the word!
-            Swal.fire({
-                icon: 'info',
-                title: 'Guessed It!',
-                text: 'Congratulation, you guessed the word!',
-                confirmButtonColor: '#f0ad4e',
-            })
-            
-        } else {
-            // an other player guessed the word
-            Swal.fire({
-                icon: 'info',
-                title: data.player + ' guessed It!',
-                text: data.player + ' guessed the word! ',
-                confirmButtonColor: '#f0ad4e',
-            })
-        }
 
-        if(scores.get(data.player) == undefined){
+        if (scores.get(data.player) == undefined) {
             console.log('Error, the user is not legal, the peer' + data.id + ' did a cheat message!')
         } else {
-        // local setting
-        scores.set(data.player, scores.get(data.player)+1)
-        updateScore(scores)
+            // local setting
+            scores.set(data.player, scores.get(data.player) + 1)
+            updateScore(scores)
+            if(scores.get(data.player) == 2){
+                if(data.player == _username){
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'You are the winner!!',
+                        text: 'Congratulation, you won the word!',
+                        confirmButtonColor: '#f0ad4e',
+                    })
+                } else {
+                    Swal.fire({
+                        icon: 'info',
+                        title: data.player + ' won the game!',
+                        text: 'You lost the game, make a new game and guess quicker!',
+                        confirmButtonColor: '#f0ad4e',
+                    })
+                }
+                toggleHomepage()
+                resetGameVariables()
+                // removePeer() no need
+            } else {
+                if (data.player == _username) {
+                    // you guessed the word!
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Guessed It!',
+                        text: 'Congratulation, you guessed the word!',
+                        confirmButtonColor: '#f0ad4e',
+                    })
+        
+                } else {
+                    // an other player guessed the word
+                    Swal.fire({
+                        icon: 'info',
+                        title: data.player + ' guessed It!',
+                        text: data.player + ' guessed the word! ',
+                        confirmButtonColor: '#f0ad4e',
+                    })
+                }
+            }
         }
         console.log('------------------------------------')
     }
 
 }
+
+// this function update the competitors peers on the end game event, so they handle it and manage the view and data
+// to restore the initial situation and gives the possibility to restart a new game.
+function endGame(data) {
+    console.log('------------ End Game ------------')
+    if (data.id != null || data.id != undefined) {
+        toggleHomepage()
+        resetGameVariables()
+    } else {
+        console.log('Illegal format error')
+    }
+    console.log('----------------------------------')
+}
+
 
 // Send a message in the meshs
 function sendBroadcast(message) {
@@ -555,13 +604,15 @@ function sendBroadcast(message) {
 }
 
 
-// Removing the Peer from the client
+// Removing the Peer from the client (peer resetting)
 function removePeer() {
+    console.log('---------- Remove Peer --------------')
     isRemoved = true;
     peerId = null;
     isJoined = false
     isStarted = false
     isVoted = false
+    gameMode = false
     counterGameMode = 0
     vote = null
     numVotes = 0
@@ -569,8 +620,10 @@ function removePeer() {
     usernames = new Map();
     ids = new Array();
     peers = new Map();
-    isInitiator = null;
+    isInitiator = false;
+    cleanContent()
     if (peer != undefined) peer.destroy()
+    console.log('-------------------------------------')
 }
 
 /* ---------------------------- */
@@ -579,8 +632,8 @@ function removePeer() {
 
 
 // parse guess is only in the painter, and check if an user guessed the word
-function parseGuess(username, message, guess){
-    if(message.includes(guess)){
+function parseGuess(username, message, guess) {
+    if (message.includes(guess)) {
         // competitor written the guess word
         console.log("------------- Parse Guess -------------")
         console.log('Player ' + username + " guess the word")
@@ -592,22 +645,69 @@ function parseGuess(username, message, guess){
             confirmButtonColor: '#f0ad4e',
         })
         // local setting
-        scores.set(username, scores.get(username)+1)
+        scores.set(username, scores.get(username) + 1)
         updateScore(scores)
         // propagate new settings
         sendBroadcast({
             type: "guessed",
-            word : guess,
-            player : username,
-            id : peerId,
+            word: guess,
+            player: username,
+            id: peerId,
         })
         guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
         updateGuessContent(guessWord)
-        // TO-DO: Control on winner here and in Guessed function
+        // TO-DO: Control on winner here and in Guessed function (Change the 2 with 10)
+        if (scores.get(username) >= 2) {
+            console.log('The player ' + username + " won the game!")
+            Swal.fire({
+                icon: 'info',
+                title: 'And the winner is... ' + username + "!",
+                text: username + ' obtained 10 points, he won the game!',
+                confirmButtonColor: '#f0ad4e',
+            })
+            // resetGameVariables()
+            sendBroadcast({
+                type: "endGame",
+                id: peerId,
+            })
+            toggleHomepage()
+            resetGameVariables()
+        }
         console.log("---------------------------------------")
 
     } else {
         // do nothing
+    }
+}
+
+
+// reset variables at the end of the game for the current peer
+function resetGameVariables() {
+    isRemoved = true;
+    peerId = null;
+    isJoined = false
+    isStarted = false
+    isVoted = false
+    gameMode = false
+    counterGameMode = 0
+    _username = null
+    roomId = null
+    vote = null
+    numVotes = 0
+    voteList = new Map()
+    usernames = new Map();
+    ids = new Array();
+    peers = new Map();
+    scores = new Map();
+    guessWord = null
+    isInitiator = false;
+    peer.disconnect()
+    cleanContent()
+    // Manage connection
+    var connections = peers.values()
+    for(let i = 0; i < peers.size; i++){
+        var connection = connections.next().value
+        connection.close()
     }
 }
 
@@ -632,15 +732,31 @@ function initVote() {
     isVoted = true
     numVotes += 1
     vote = usernames.get(peers.keys().next().value) // first connection
-    voteList.set(vote, (voteList.get(vote) + 1))
-    console.log('Current candidates size: ' + voteList.size)
-    console.log('You voted: ' + vote)
-    console.log('-------------------------------')
-    sendBroadcast({
-        type: "votePainter",
-        candidate: vote,
-        id: peerId,
-    })
+    if(isInitiator){
+        voteList.set(vote, (voteList.get(vote) + 1001))
+        console.log('Current candidates size: ' + voteList.size)
+        console.log('You voted: ' + vote)
+        console.log('-------------------------------')
+        sendBroadcast({
+            type: "votePainter",
+            candidate: vote,
+            priority: true,
+            id: peerId,
+        }) 
+    } else {
+        voteList.set(vote, (voteList.get(vote) + 1))
+    
+        console.log('Current candidates size: ' + voteList.size)
+        console.log('You voted: ' + vote)
+        console.log('-------------------------------')
+        sendBroadcast({
+            type: "votePainter",
+            candidate: vote,
+            priority: false,
+            id: peerId,
+        }) 
+    }
+
     // this is true only in the last peer who define the last vote
     checkVoteResults()
 
@@ -655,7 +771,6 @@ function checkVoteResults() {
         for (let i = 0; i < voteList.size; i++) {
             var candidate = iteratorVote.next().value
             var candidateVote = voteList.get(candidate)
-            console.log('Candidate ' + candidate + " has " + candidateVote + " votes")
             if (candidateVote > max) {
                 max = candidateVote
                 winner = candidate
@@ -676,16 +791,18 @@ function checkVoteResults() {
             updateCompetitor()
         }
         console.log('--------------------------------')
+
     }
 }
 
+
 // Setting guess word for external use
-function setGuessWord(guess){
+function setGuessWord(guess) {
     guessWord = guess
 }
 
 // Getting guess word for external use
-function getGuessWord(){
+function getGuessWord() {
     return guessWord
 }
 // this function is the game init session on the current peer

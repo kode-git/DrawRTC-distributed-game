@@ -189,24 +189,49 @@ function updateScore(scores) {
 // Update the painter view
 function updatePainter() {
     var guess = getGuessWord()
-    console.log('Painter view...')
+    console.log('Setting painter view...')
     document.getElementById('waiting').innerHTML = "You are the painter. Quick, draw!"
     document.getElementById('word-guess').innerHTML = "Guess Word: " + guess
     document.getElementById('painter-tools').style.display = 'block'
     removePainterScore()
+    console.log('Panter has actually the correct view')
 }
 
 // Update competitor view
 function updateCompetitor() {
-    console.log('Competitor view...')
+    console.log('Setting competitor view...')
     document.getElementById('painter-tools').style.display = 'none'
     document.getElementById('waiting').innerHTML = ""
+    console.log('Competitor has actually the correct view')
 
 }
 
-
+// Update the guess word with a new one
 function updateGuessContent(guess){
     document.getElementById('word-guess').innerHTML = "Guess Word: " + guess
+}
+
+// cleaning the content of the peer for let him to restart the game 
+function cleanContent(){
+    cleanLobby()
+    cleanScore()
+    cleanChat()
+}
+
+// Clean the lobby content at the end of a game (for the local peer)
+function cleanLobby(){
+    userList.value = "Players:\n"
+}
+
+// Clean the score table at the end of a game (for the local peer)
+function cleanScore(){
+    gameScore = document.getElementById('game-score')
+    gameScore.value = "\nScore\n" +
+        "-----------\n";
+}
+// clean the chat content at the end of a game (for the local peer)
+function cleanChat(){
+    document.getElementById('content-chat').innerHTML = ""
 }
 
 // Changing the view to Homepage Model
@@ -233,7 +258,7 @@ function toggleLobby(roomId, username) {
 }
 
 
-// Changing the views to Game mode
+// Changing the views to Game mode in default view
 function toggleGame() {
     // this is the dynamic content of the game from the lobby
     homepage.style.display = 'none'
@@ -241,6 +266,9 @@ function toggleGame() {
     mainNavbar.style.display = 'none'
     game.style.display = 'block'
     document.getElementById('painter-tools').style.display = 'none'
+    startButton.style.display = "block"
+    document.getElementById('waiting').innerHTML = ""
+    document.getElementById('word-guess').innerHTML = ""
 }
 
 // change the availability of the game mode
