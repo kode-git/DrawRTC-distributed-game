@@ -1025,17 +1025,6 @@ function manageLeave(room, client) {
                 toggleGameButton(true)
             }
         }
-        // If the peer voted but needs the vote from other peer
-        if (isWaitingVote || (numVotes > 0 && isWaitingVote) || isVotingSession) {
-            console.log('Reset vote system')
-            // if you press the start game during disconnection
-            // every node needs to be reset the vote, that's because
-            // the total votes consider the voting of the crashed client
-            // and we didn't know a priori if he voted or not
-            resetVoteSystem(leaver) // we need to reset the vote system
-        }
-        // Competitor is the leaver
-        updateScore(scores)
         if (peers.size + 1 <= 2) {
             // not enough competitors
             Swal.fire({
@@ -1054,44 +1043,17 @@ function manageLeave(room, client) {
             if (leaver != undefined)
                 notifyChat('Player ' + leaver + " is leaving the chat")
         }
-
-        /*
-        if (leaver == painter) {
-            // priority painter changing
-            // here we don't have priorities, username and peer connection (already closed)  of the painter 
-            // peer. So, we need to estabilish who is the new painter in a speedy way: Using priority peer feature
-            // Each peer has a priority value randomly decide during the connection with the mesh.
-            var prioritiesIds = priorities.keys()
-            // base step
-            var optimal = priority 
-            var optimalUsername = _username
-            // inductive step
-            for(let i = 0; i < priorities.size; i++){
-                var usernamePeer = usernames.get(prioritiesIds.next().value)
-                var priorityPeer = priorities.get(usernamePeer)
-                if(priorityPeer < optimal){
-                    optimal = priorityPeer
-                    optimalUsername = usernamePeer
-                }
-            }
-            // IMPORTANT: We have already a global state for priorities, because if we have connections with other peers, we have
-            // already their priorities which don't change because it was setting on peer opening 
-            painter = optimalUsername
-            console.log('The new painter is: ' + painter + " with priority: " + optimal)
-            if(painter == _username){
-            // you are the winner
-            console.log('You are the new painter')
-            // setting the initial guess word
-            guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
-            console.log('Guess word is: ' + guessWord)
-            updatePainter()
-            } else {
-            console.log('Candidate painter is: ' + painter)
-            updateCompetitor()
-            }
+        // If the peer voted but needs the vote from other peer
+        if (isWaitingVote || (numVotes > 0 && isWaitingVote) || isVotingSession) {
+            console.log('Reset vote system')
+            // if you press the start game during disconnection
+            // every node needs to be reset the vote, that's because
+            // the total votes consider the voting of the crashed client
+            // and we didn't know a priori if he voted or not
+            resetVoteSystem(leaver) // we need to reset the vote system
         }
-        */
-
+        // Competitor is the leaver
+        updateScore(scores)
     }
     console.log('------------------------------------------------------')
 

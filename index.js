@@ -78,6 +78,7 @@ function resetStartButton(){
     document.getElementById('waiting').innerHTML = ""
     document.getElementById('word-guess').innerHTML = ""
     document.getElementById('painter-tools').style.display = 'none'
+    deactivateCanvas()
 }
 
 // Avoid the submit message for refresh the page (losing the session)
@@ -225,6 +226,7 @@ function updatePainter() {
     document.getElementById('word-guess').innerHTML = "Guess Word: " + guess
     document.getElementById('painter-tools').style.display = 'block'
     removePainterScore()
+    activateCanvas()
     console.log('Panter has actually the correct view')
 }
 
@@ -234,6 +236,7 @@ function updateCompetitor() {
     document.getElementById('painter-tools').style.display = 'none'
     document.getElementById('word-guess').innerHTML = ""
     document.getElementById('waiting').innerHTML = ""
+    deactivateCanvas()
     console.log('Competitor has actually the correct view')
 
 }
@@ -307,6 +310,7 @@ function toggleGame() {
     startButton.style.display = "block"
     document.getElementById('waiting').innerHTML = ""
     document.getElementById('word-guess').innerHTML = ""
+    deactivateCanvas()
 }
 
 // change the availability of the game mode
