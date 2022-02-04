@@ -1,5 +1,7 @@
 // this script is an utility one for the front-end DOM management not associated with peers connection (peer.js).
 
+
+// DOM main components for the event management system
 homepage = document.getElementById('homepage-content')
 lobby = document.getElementById('lobby-content')
 game = document.getElementById('game-content')
@@ -12,6 +14,8 @@ playButton = document.getElementById('play-button')
 startButton = document.getElementById('start-game')
 sendButton = document.getElementById('send-chat')
 inputChat = document.getElementById('input-chat')
+
+// Avatar image used from the player in the chat 
 avatarNumber = randomIntFromInterval(1,9)
 
 // Copying service for room sharing with temporal notify on the screen
@@ -41,17 +45,20 @@ lobbyName.addEventListener('click', (event) => {
     document.body.appendChild(styler);
 })
 
+// Adding click listener on the lobbyExitButton
 lobbyExitButton.addEventListener('click', function (e) {
     console.log('Removing peer from the lobby...')
     removePeer();
     toggleHomepage();
 })
 
+// Adding click listener on the lobby Button
 lobbyButton.addEventListener('click', function (event) {
     console.log('Joining in the game...')
     initGame()
 })
 
+// Adding click listener on the startButton
 startButton.addEventListener('click', function (event) {
     console.log('Start Button clicked')
     startButton.style.display = 'none'
@@ -59,6 +66,7 @@ startButton.addEventListener('click', function (event) {
     initVote()
 })
 
+// Adding click listener on the sendButton
 sendButton.addEventListener('click', function (event) {
     submitMessage()
 })
@@ -68,6 +76,8 @@ sendButton.addEventListener('click', function (event) {
 function resetStartButton(){
     startButton.style.display = 'block'
     document.getElementById('waiting').innerHTML = ""
+    document.getElementById('word-guess').innerHTML = ""
+    document.getElementById('painter-tools').style.display = 'none'
 }
 
 // Avoid the submit message for refresh the page (losing the session)
@@ -118,6 +128,8 @@ function putMessage(message) {
 }
 
 
+
+// Propagate a message of a player
 function putPropagatedMessage(avatar, username, message){
     var contentChat = document.getElementById('content-chat')
     var tag = document.createElement('div') // right-msg div
@@ -220,6 +232,7 @@ function updatePainter() {
 function updateCompetitor() {
     console.log('Setting competitor view...')
     document.getElementById('painter-tools').style.display = 'none'
+    document.getElementById('word-guess').innerHTML = ""
     document.getElementById('waiting').innerHTML = ""
     console.log('Competitor has actually the correct view')
 

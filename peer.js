@@ -33,6 +33,7 @@ var isWaitingVote = false // If the user press the start button and wait other v
 var isWaitingJoin = false // If the user waiting joining in game but the user left
 var numVotes = 0; // defined the number of votes on the peer
 var voteList = new Map(); // list of votes [ username : candidateVote]
+var isVotingSession = false // if player receive votes
 var isStarted = false; // if the game is started
 var isJoined = false; // if the user is in the game mode
 var scores = new Map(); // hash for mapping the game score with [ username : score_value]
@@ -195,6 +196,7 @@ function createPeerConnection(id) {
     peer.on('open', function (id) {
         console.log('Open handler: your own id for peer is: ' + id)
         // Append your username 
+        priority = peers.size + 1 + randomIntFromInterval(1, 2147483647)
         usernames.set(id, _username)
         scores.set(_username, 0)
     })
@@ -210,7 +212,6 @@ function createPeerConnection(id) {
     peer.on("connection", function (connection) {
         connection.on('open', function () {
             console.log('Adding new connection with the peer: ' + peerId)
-            priority = peers.size + 1 + randomIntFromInterval(1, 2147483647)
             connection.send({
                 type: "sendUsername",
                 username: _username,
@@ -386,7 +387,7 @@ function sendUsernameSender(data) {
                 socket.disconnect()
                 socket = io.connect()
                 initSocketHandlers()
-                resetGameVariables()
+                disconnectPeer()
                 removePeer()
             }
             modifyContentLobby(usernames)
@@ -439,7 +440,7 @@ function sendUsernameReceiver(data) {
                 socket.disconnect()
                 socket = io.connect()
                 initSocketHandlers()
-                resetGameVariables()
+                disconnectPeer()
                 removePeer()
             }
             modifyContentLobby(usernames)
@@ -528,14 +529,13 @@ function votePainter(data) {
     if (data.id == null || data.candidate == null || data.candidate == undefined || data.id == undefined) {
         console.log('Illegal format error')
     } else {
+        isVotingSession = true
         numVotes += 1
         console.log('Received: ' + data.candidate + " as a new vote")
         if (data.priority) {
             console.log('Vote is on priority (given by the initiator)')
-            voteList.set(data.candidate, (voteList.get(data.candidate) + 1001))
-        } else {
-            voteList.set(data.candidate, (voteList.get(data.candidate) + 1))
         }
+        voteList.set(data.candidate, (voteList.get(data.candidate) + data.weigth))
         console.log('Current number of votes: ' + numVotes)
         // this will be true for every peer except the last one
         checkVoteResults()
@@ -614,7 +614,7 @@ function guessed(data) {
                     })
                 }
                 toggleHomepage()
-                resetGameVariables()
+                disconnectPeer()
                 // removePeer() no need
             } else {
                 if (data.player == _username) {
@@ -648,7 +648,7 @@ function endGame(data) {
     console.log('------------ End Game ------------')
     if (data.id != null || data.id != undefined) {
         toggleHomepage()
-        resetGameVariables()
+        disconnectPeer()
     } else {
         console.log('Illegal format error')
     }
@@ -679,22 +679,7 @@ function sendBroadcast(message) {
 // Removing the Peer from the client (peer resetting)
 function removePeer() {
     console.log('---------- Remove Peer --------------')
-    isRemoved = true;
-    peerId = null;
-    isJoined = false
-    isStarted = false
-    isVoted = false
-    gameMode = false
-    isWaitingVote = false
-    isWaitingJoin = false
-    counterGameMode = 0
-    vote = null
-    numVotes = 0
-    voteList = new Map()
-    usernames = new Map();
-    ids = new Array();
-    peers = new Map();
-    isInitiator = false;
+    resetVariablesState()
     cleanContent()
     if (peer != undefined) peer.destroy()
     console.log('-------------------------------------')
@@ -739,13 +724,13 @@ function parseGuess(username, message, guess) {
                 text: username + ' obtained 10 points, he won the game!',
                 confirmButtonColor: '#f0ad4e',
             })
-            // resetGameVariables()
+            // disconnectPeer()
             sendBroadcast({
                 type: "endGame",
                 id: peerId,
             })
             toggleHomepage()
-            resetGameVariables()
+            disconnectPeer()
         }
         console.log("---------------------------------------")
 
@@ -754,9 +739,9 @@ function parseGuess(username, message, guess) {
     }
 }
 
-
-// reset variables at the end of the game for the current peer
-function resetGameVariables() {
+// Function to reset the variables of the peer which identify a local state to compare with other peers
+// and defines a global one. This function is called only when the peer is forced to disconnect or destroy itself
+function resetVariablesState(){
     isRemoved = true;
     peerId = null;
     isJoined = false
@@ -777,6 +762,11 @@ function resetGameVariables() {
     scores = new Map();
     guessWord = null
     isInitiator = false;
+}
+
+// Disconnect Peers for every connections he did
+function disconnectPeer() {
+    resetVariablesState()
     peer.disconnect()
     cleanContent()
     // Manage connection
@@ -801,14 +791,31 @@ function removePainterScore() {
     })
 }
 
-function resetVoteSystem() {
+// Reset the voting system for crash candidate
+function resetVoteSystem(leaver) {
     console.log('--------- Reset Vote System ----------')
     isVoted = false
     isWaitingVote = false
     numVotes = 0
     vote = null
     voteList = new Map()
-    console.log('Current player who can vote: ' + (peers.size + 1))
+    console.log('Reset vote list...')
+    console.log(usernames)
+    console.log('Size of usernames: ' + usernames.size)
+    voteList.set(_username, 0)
+    var listUsernames = usernames.values() 
+    for(let i = 0; i < usernames.size; i++){
+        voteList.set(listUsernames.next().value, 0)
+    }
+    console.log('Every candidate is reset')
+    console.log('Current player who can vote: ' + (peers.size + 1)) // + 1 to consider myself
+    console.log('Restart the initial state of Start Button...')
+    if(leaver == painter){
+        // do nothing
+    } else  {
+        scores.set(painter, 0)
+        updateScore(scores)
+    }
     resetStartButton();
     console.log('--------------------------------------')
 }
@@ -821,7 +828,8 @@ function initVote() {
     numVotes += 1
     vote = usernames.get(peers.keys().next().value) // first connection
     if (isInitiator) {
-        voteList.set(vote, (voteList.get(vote) + 1001))
+        var weigthInit = 2 + 2147483647
+        voteList.set(vote, (voteList.get(vote) + weigthInit))
         console.log('Current candidates size: ' + voteList.size)
         console.log('You voted: ' + vote)
         console.log('-------------------------------')
@@ -829,10 +837,11 @@ function initVote() {
             type: "votePainter",
             candidate: vote,
             priority: true,
+            weigth: weigthInit,
             id: peerId,
         })
     } else {
-        voteList.set(vote, (voteList.get(vote) + 1))
+        voteList.set(vote, (voteList.get(vote) + priority))
 
         console.log('Current candidates size: ' + voteList.size)
         console.log('You voted: ' + vote)
@@ -841,6 +850,7 @@ function initVote() {
             type: "votePainter",
             candidate: vote,
             priority: false,
+            weigth: priority,
             id: peerId,
         })
     }
@@ -850,21 +860,27 @@ function initVote() {
 
 }
 
+// Checking the vote result on the painter voting system
 function checkVoteResults() {
     if (numVotes >= peers.size + 1) {
         console.log('----------- Vote End -----------')
-        isStarted = true
+        isStarted = true // starting of the game session
+        isVoted = false // ending of the voting session
+        isVotingSession = false // user will not receive vote anymore
         var max = 0
         var iteratorVote = voteList.keys()
         var winner;
+        console.log('Weighted votes:')
         for (let i = 0; i < voteList.size; i++) {
             var candidate = iteratorVote.next().value
             var candidateVote = voteList.get(candidate)
+            console.log('Candidate ' + candidate + ' has ' + candidateVote + ' votes')
             if (candidateVote > max) {
                 max = candidateVote
                 winner = candidate
             }
         }
+        console.log('Painter is ' + winner + " with a weighed vote of " + max)
         painter = winner
         // Remove painter score from table
         removePainterScore()
@@ -966,7 +982,7 @@ function setWaitingJoin(value) {
 
 // Manage the leave of a player
 function manageLeave(room, client) {
-    console.log('Leave notified...')
+    console.log('------------ Crash or Leave Management ---------------')
     console.log('Client ' + client + " is leaving from room " + room)
     var leaver = usernames.get(client)
     console.log('Current data: ')
@@ -1010,9 +1026,13 @@ function manageLeave(room, client) {
             }
         }
         // If the peer voted but needs the vote from other peer
-        if (isWaitingVote) {
+        if (isWaitingVote || (numVotes > 0 && isWaitingVote) || isVotingSession) {
+            console.log('Reset vote system')
             // if you press the start game during disconnection
-            resetVoteSystem() // we need to reset the vote system
+            // every node needs to be reset the vote, that's because
+            // the total votes consider the voting of the crashed client
+            // and we didn't know a priori if he voted or not
+            resetVoteSystem(leaver) // we need to reset the vote system
         }
         // Competitor is the leaver
         updateScore(scores)
@@ -1028,19 +1048,52 @@ function manageLeave(room, client) {
             socket.disconnect()
             socket = io.connect()
             initSocketHandlers()
-            resetGameVariables()
+            disconnectPeer()
             removePeer()
         } else {
             if (leaver != undefined)
                 notifyChat('Player ' + leaver + " is leaving the chat")
         }
 
-
+        /*
         if (leaver == painter) {
             // priority painter changing
+            // here we don't have priorities, username and peer connection (already closed)  of the painter 
+            // peer. So, we need to estabilish who is the new painter in a speedy way: Using priority peer feature
+            // Each peer has a priority value randomly decide during the connection with the mesh.
+            var prioritiesIds = priorities.keys()
+            // base step
+            var optimal = priority 
+            var optimalUsername = _username
+            // inductive step
+            for(let i = 0; i < priorities.size; i++){
+                var usernamePeer = usernames.get(prioritiesIds.next().value)
+                var priorityPeer = priorities.get(usernamePeer)
+                if(priorityPeer < optimal){
+                    optimal = priorityPeer
+                    optimalUsername = usernamePeer
+                }
+            }
+            // IMPORTANT: We have already a global state for priorities, because if we have connections with other peers, we have
+            // already their priorities which don't change because it was setting on peer opening 
+            painter = optimalUsername
+            console.log('The new painter is: ' + painter + " with priority: " + optimal)
+            if(painter == _username){
+            // you are the winner
+            console.log('You are the new painter')
+            // setting the initial guess word
+            guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
+            console.log('Guess word is: ' + guessWord)
+            updatePainter()
+            } else {
+            console.log('Candidate painter is: ' + painter)
+            updateCompetitor()
+            }
         }
+        */
 
     }
+    console.log('------------------------------------------------------')
 
 }
 /* ----------------- */
