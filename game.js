@@ -11,68 +11,77 @@ contentScore = "\nScore\n" +
     "-----------\n";
 gameScore.value = contentScore;
 
-
-
-
 /* ------------------- */
 /*   Canvas Management */
 /* ------------------- */
 
+// canvas an context declaration and init a void coordinate of the first point of canvas.
 var canvas = document.getElementById('paper')
 var ctx = canvas.getContext('2d')
 var coord = {x: 0, y: 0}
 
+// clean button 
+cleanCanvas = document.getElementById('delete-sweep')
+
+// This function is based on the event of "line start"
+function start(event) {
+    document.addEventListener('mousemove', draw);
+    reposition(event);
+}
+
+// Reposition the line respect the mouse on canvas environment 
+function reposition(event) {
+    coord.x = event.clientX - canvas.offsetLeft;
+    coord.y = event.clientY - canvas.offsetTop - 60;
+    console.log(coord)
+}
+
+// This function is based on the event of "line end"
+function stop() {
+    document.removeEventListener('mousemove', draw);
+}
+
+// clean the paper from every lines recently written
+function clean(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Function to draw a line of 5 pixel, black and rounded from (x,y) to (x',y') with (x',y') the output of the reposition on coord
+// from the event (new point). The line is designed with lineTo method on a 2d context previously declared.
+function draw(event) {
+    ctx.beginPath();
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'black';
+    ctx.moveTo(coord.x, coord.y);
+    reposition(event);
+    ctx.lineTo(coord.x, coord.y);
+    ctx.stroke();
+}
+
+// Activate the drawing on the paper
 function activateCanvas(){
-    console.log('Activated canvas...')
-    function start(event) {
-        document.addEventListener('mousemove', draw);
-        reposition(event);
-    }
-    
-    // Reposition the line respect the mouse on canvas environment 
-    function reposition(event) {
-        coord.x = event.clientX - canvas.offsetLeft;
-        coord.y = event.clientY - canvas.offsetTop;
-        console.log(coord)
-    }
-
-    function stop() {
-        document.removeEventListener('mousemove', draw);
-    }
-
-    function draw(event) {
-        ctx.beginPath();
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'black';
-        ctx.moveTo(coord.x, coord.y);
-        reposition(event);
-        ctx.lineTo(coord.x, coord.y);
-        ctx.stroke();
-    }
-
-    // resie the canvas context on the windows width and height
-    function resize() {
-        ctx.canvas.width = window.innerWidth;
-        ctx.canvas.height = window.innerHeight;
-      }
-    // initial resize
-    resize();
+    console.log('---------- Activated canvas ----------')
     canvas.addEventListener('mousedown', start);
     canvas.addEventListener('mouseup', stop);
-    window.addEventListener('resize', resize);
+    cleanCanvas.addEventListener('click', clean);
+    console.log('--------------------------------------')
+
 }
 
-
+// Deactivate the drawing on the paper, we will check only the showing mode
 function deactivateCanvas(){
+    console.log('---------- Activated canvas ----------')
+    canvas.removeEventListener('mousedown', start);
+    canvas.removeEventListener('mouseup', stop)
+    console.log('--------------------------------------')
 }
-
-
 
 /* ------------------- */
 /*   Utility Functions */
 /* ------------------- */
 
+// generate a random element between x and y 
 function generateRandom(x, y) {
     if (y > x) {
         return x + Math.floor(Math.random() * (y - x));

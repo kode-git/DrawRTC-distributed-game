@@ -168,8 +168,8 @@
                 <li id="left-title"></li>
             </ul>
         </nav>
-        <div class="frame">
-            <div class="left">
+        <div class="frame row">
+            <div id="left" class="col-sm">
                 <div id="painter-tools" class="sidebar">
                     <a data-toggle="modal" data-target="#modal-info"><i class="material-icons sidebar-icons">
                             question_mark
@@ -178,17 +178,18 @@
                             delete_sweep
                         </i></a>
                 </div>
-                <canvas id="paper"></canvas>
+                <div style="margin-top: 3px"></div>
+                <canvas height="867px" width="1200" id="paper"></canvas>
             </div>
             <div class="slider">
 
             </div>
-            <div class="right">
-                <p id="game-intro">Welcome to the game!<br> Do you want to know roles? <br><a data-toggle="modal"
+            <div id="right" style="text-align: center" class="col-sm">
+                <p class="row" style="text-align: center" id="game-intro">Welcome to the game!  Do you want to know roles? <a data-toggle="modal"
                         data-target="#modal-info" id="game-help">Check them here!</a></p>
-                <textarea id="game-score" cols="44" rows="10" readonly></textarea>
-                <hr>
-                <section class="msger">
+                <textarea id="game-score" class="row" cols="44" rows="10" readonly></textarea>
+                <hr class="row">
+                <section class="msger row">
                     <header class="msger-header">
                         <div class="msger-header-title">
                             <i class="material-icons chat-icons">help</i> Guess Chat
