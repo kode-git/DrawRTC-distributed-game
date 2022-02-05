@@ -408,8 +408,12 @@ function sendUsernameReceiver(data) {
             text: 'The game is started, you can\'t join in the room.',
             confirmButtonColor: '#f0ad4e',
         })
-        removePeer()
         toggleHomepage()
+        socket.disconnect()
+        socket = io.connect()
+        initSocketHandlers()
+        disconnectPeer()
+        removePeer()
     } else {
         console.log('New Peer connection')
         if (usernames.get(data.username) != undefined || usernames.get(data.username) != null || data.username == _username) {
@@ -419,8 +423,12 @@ function sendUsernameReceiver(data) {
                 text: 'The username ' + data.username + " already used, use another one to join in the room",
                 confirmButtonColor: '#f0ad4e',
             })
-            removePeer()
             toggleHomepage()
+            socket.disconnect()
+            socket = io.connect()
+            initSocketHandlers()
+            disconnectPeer()
+            removePeer()
         } else {
             console.log('Received: ' + data.username)
             usernames.set(data.id, data.username)
