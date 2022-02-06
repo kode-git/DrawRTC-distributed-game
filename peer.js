@@ -266,6 +266,12 @@ function createPeerConnection(id) {
                 case "guessed":
                     guessed(data)
                     break;
+                case "draw":
+                    onDraw(data)
+                    break;
+                case "clean":
+                    onClean(data)
+                    break;
                 case "endGame":
                     endGame(data)
                     break;
@@ -319,6 +325,12 @@ function addPeerConnection(id) {
                 break;
             case "guessed":
                 guessed(data)
+                break;
+            case "draw":
+                onDraw(data)
+                break;
+            case "clean":
+                onClean(data)
                 break;
             case "endGame":
                 endGame(data)
@@ -749,7 +761,7 @@ function parseGuess(username, message, guess) {
 
 // Function to reset the variables of the peer which identify a local state to compare with other peers
 // and defines a global one. This function is called only when the peer is forced to disconnect or destroy itself
-function resetVariablesState(){
+function resetVariablesState() {
     isRemoved = true;
     peerId = null;
     isJoined = false
@@ -811,16 +823,16 @@ function resetVoteSystem(leaver) {
     console.log(usernames)
     console.log('Size of usernames: ' + usernames.size)
     voteList.set(_username, 0)
-    var listUsernames = usernames.values() 
-    for(let i = 0; i < usernames.size; i++){
+    var listUsernames = usernames.values()
+    for (let i = 0; i < usernames.size; i++) {
         voteList.set(listUsernames.next().value, 0)
     }
     console.log('Every candidate is reset')
     console.log('Current player who can vote: ' + (peers.size + 1)) // + 1 to consider myself
     console.log('Restart the initial state of Start Button...')
-    if(leaver == painter){
+    if (leaver == painter) {
         // do nothing
-    } else  {
+    } else {
         scores.set(painter, 0)
         updateScore(scores)
     }
@@ -963,6 +975,30 @@ function scoreSetting() {
     }
     peerInfo()
     console.log('-----------------------------------------')
+}
+
+// Propagate the draw from painter to competitors
+function propagateDraw(x, y, x1, y1) {
+    if (painter == _username) {
+        sendBroadcast({
+            type: "draw",
+            clientX: x,
+            clientY: y,
+            x: x1,
+            y: y1,
+            id: peerId,
+        })
+    }
+}
+
+// propagate the clean of paper from painter to competitors
+function propagateClean() {
+    if (painter == _username) {
+        sendBroadcast({
+            type: "clean",
+            id: peerId,
+        })
+    }
 }
 
 // Service function to display in the console the own information

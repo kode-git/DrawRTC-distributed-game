@@ -33,7 +33,6 @@ function start(event) {
 function reposition(event) {
     coord.x = event.clientX - canvas.offsetLeft;
     coord.y = event.clientY - canvas.offsetTop - 60;
-    console.log(coord)
 }
 
 // This function is based on the event of "line end"
@@ -44,6 +43,7 @@ function stop() {
 // clean the paper from every lines recently written
 function clean(){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    propagateClean()
 }
 
 // Function to draw a line of 5 pixel, black and rounded from (x,y) to (x',y') with (x',y') the output of the reposition on coord
@@ -54,11 +54,40 @@ function draw(event) {
     ctx.lineCap = 'round';
     ctx.strokeStyle = 'black';
     ctx.moveTo(coord.x, coord.y);
+    var x = coord.x
+    var y = coord.y
     reposition(event);
+    ctx.lineTo(coord.x, coord.y);
+    ctx.stroke();
+    propagateDraw(event.clientX, event.clientY, x , y)
+}
+
+// Function to draw who did the painter (if you are a competitor)
+function onDraw(data){
+    if(coord.x == 0 && coord.y == 0){
+        coord.x = data.clientX - canvas.offsetLeft;
+        coord.y = data.clientY - canvas.offsetTop - 60;
+    }
+    coord.x = data.x
+    coord.y = data.y
+    ctx.beginPath();
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'black';
+    ctx.moveTo(coord.x, coord.y);
+    coord.x = data.clientX - canvas.offsetLeft;
+    coord.y = data.clientY - canvas.offsetTop - 60;
     ctx.lineTo(coord.x, coord.y);
     ctx.stroke();
 }
 
+function onClean(data){
+    if(data.id != null || data.id != undefined){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    } else{
+        console.log('Illegal message format')
+    }
+}
 // Activate the drawing on the paper
 function activateCanvas(){
     console.log('---------- Activated canvas ----------')
