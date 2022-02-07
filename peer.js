@@ -42,7 +42,7 @@ createRoom = document.getElementById('create-button') // create button
 createRoom.addEventListener("click", createGame); // create Lobby as the initializator
 joinRoom = document.getElementById('join-button') // join button
 joinRoom.addEventListener("click", joinGame) // join in an existing lobby
-
+const delay = ms => new Promise(res => setTimeout(res, ms)); // async delay
 
 /* --------------- */
 /*    Main calls   */
@@ -345,7 +345,7 @@ function addPeerConnection(id) {
         console.log('Connection closed with: ' + id)
         scores.delete(usernames.get(id))
         if (isStarted) {
-            // TO-DO: Updating content 
+            // Management inside peer
         }
         usernames.delete(id)
         peers.delete(id)
@@ -633,8 +633,13 @@ function guessed(data) {
                         confirmButtonColor: '#f0ad4e',
                     })
                 }
+                cleanLocal()
                 toggleHomepage()
+                socket.disconnect()
+                socket = io.connect()
+                initSocketHandlers()
                 disconnectPeer()
+                removePeer()
                 // removePeer() no need
             } else {
                 if (data.player == _username) {
@@ -667,8 +672,13 @@ function guessed(data) {
 function endGame(data) {
     console.log('------------ End Game ------------')
     if (data.id != null || data.id != undefined) {
+        cleanLocal()
         toggleHomepage()
+        socket.disconnect()
+        socket = io.connect()
+        initSocketHandlers()
         disconnectPeer()
+        removePeer()
     } else {
         console.log('Illegal format error')
     }
@@ -711,7 +721,7 @@ function removePeer() {
 
 
 // parse guess is only in the painter, and check if an user guessed the word
-function parseGuess(username, message, guess) {
+async function parseGuess(username, message, guess) {
     if (message.includes(guess)) {
         // competitor written the guess word
         console.log("------------- Parse Guess -------------")
@@ -749,8 +759,14 @@ function parseGuess(username, message, guess) {
                 type: "endGame",
                 id: peerId,
             })
+            await delay(2000)
+            cleanLocal()
             toggleHomepage()
+            socket.disconnect()
+            socket = io.connect()
+            initSocketHandlers()
             disconnectPeer()
+            removePeer()
         }
         console.log("---------------------------------------")
 
@@ -789,6 +805,7 @@ function disconnectPeer() {
     resetVariablesState()
     peer.disconnect()
     cleanContent()
+    
     // Manage connection
     var connections = peers.values()
     for (let i = 0; i < peers.size; i++) {
@@ -1077,6 +1094,7 @@ function manageLeave(room, client) {
                 text: 'Your game was automatically close for not enough players',
                 confirmButtonColor: '#f0ad4e',
             })
+            cleanLocal()
             toggleHomepage()
             socket.disconnect()
             socket = io.connect()

@@ -46,6 +46,11 @@ function clean(){
     propagateClean()
 }
 
+// clean the paper only in local mode
+function cleanLocal(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
 // Function to draw a line of 5 pixel, black and rounded from (x,y) to (x',y') with (x',y') the output of the reposition on coord
 // from the event (new point). The line is designed with lineTo method on a 2d context previously declared.
 function draw(event) {
@@ -66,7 +71,7 @@ function draw(event) {
 function onDraw(data){
     if(coord.x == 0 && coord.y == 0){
         coord.x = data.clientX - canvas.offsetLeft;
-        coord.y = data.clientY - canvas.offsetTop - 60;
+        coord.y = data.clientY - canvas.offsetTop;
     }
     coord.x = data.x
     coord.y = data.y

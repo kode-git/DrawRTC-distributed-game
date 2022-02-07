@@ -14,7 +14,10 @@ playButton = document.getElementById('play-button')
 startButton = document.getElementById('start-game')
 sendButton = document.getElementById('send-chat')
 inputChat = document.getElementById('input-chat')
+contentChat = document.getElementById('content-chat')
 
+
+  
 // Avatar image used from the player in the chat 
 avatarNumber = randomIntFromInterval(1,9)
 
@@ -125,7 +128,7 @@ function putMessage(message) {
     tag.appendChild(avatar) // Avatar before the bubble
     tag.appendChild(bubble) // Bubble after the avatar
     contentChat.appendChild(tag)
-
+    chatContent.scrollTop = chatContent.scrollHeight;
 }
 
 
@@ -151,6 +154,7 @@ function putPropagatedMessage(avatar, username, message){
     tag.appendChild(avatarContent) // Avatar before the bubble
     tag.appendChild(bubble) // Bubble after the avatar
     contentChat.appendChild(tag)
+    chatContent.scrollTop = chatContent.scrollHeight;
 
 }
 // Given the username maps, fill the content with the usernames list
@@ -192,6 +196,7 @@ function notifyEnter(username) {
     var contentElement = document.createTextNode('Player ' + username + " joining in the chat")
     element.appendChild(contentElement)
     chatContent.appendChild(element)
+    chatContent.scrollTop = chatContent.scrollHeight;
 }
 
 // Notify a general message in the game room
@@ -204,6 +209,7 @@ function notifyChat(message){
     var contentElement = document.createTextNode(message)
     element.appendChild(contentElement)
     chatContent.appendChild(element)
+    chatContent.scrollTop = chatContent.scrollHeight;
 }
 
 // Updating the score view
@@ -235,7 +241,7 @@ function updateCompetitor() {
     console.log('Setting competitor view...')
     document.getElementById('painter-tools').style.display = 'none'
     document.getElementById('word-guess').innerHTML = ""
-    document.getElementById('waiting').innerHTML = ""
+    document.getElementById('waiting').innerHTML = "You are the competitor. Quick, guess!"
     deactivateCanvas()
     console.log('Competitor has actually the correct view')
 
