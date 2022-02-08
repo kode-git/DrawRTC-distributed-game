@@ -11,6 +11,34 @@ const configuration = {
     }]
 }
 
+// Function to reset the variables of the peer which identify a local state to compare with other peers
+// and defines a global one. This function is called only when the peer is forced to disconnect or destroy itself
+function resetVariablesState() {
+    isRemoved = true;
+    peerId = null;
+    isJoined = false
+    isStarted = false
+    isVoted = false
+    gameMode = false
+    counterGameMode = 0
+    _username = null
+    roomId = null
+    vote = null
+    isWaitingVote = false
+    isWaitingJoin = false
+    numVotes = 0
+    voteList = new Map()
+    usernames = new Map();
+    ids = new Array();
+    peers = new Map();
+    scores = new Map();
+    guessWord = null
+    isInitiator = false;
+}
+
+// Clean previous session in case of garbage
+resetVariablesState()
+
 
 var roomId; // Mesh connections on P2P environment
 var socket = io.connect() // socket opening
@@ -52,6 +80,15 @@ const delay = ms => new Promise(res => setTimeout(res, ms)); // async delay
 function settingId() { return '_' + Math.random().toString(36).substr(2, 9); }
 
 function createGame() {
+    if(!socket.connected || socket.disconnected){
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Signalling server offline, you can\'t create any game',
+            confirmButtonColor: '#f0ad4e',
+        })
+        return 0; // Avoid connection making for no data issue
+    }
     var username = document.getElementById("create-username").value
     priority = 0
     if (username == "" || username == null) {
@@ -71,6 +108,15 @@ function createGame() {
 
 // function to join to an existing game lobby
 function joinGame() {
+    if(!socket.connected || socket.disconnected){
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Signalling server offline, you can\'t join to any game',
+            confirmButtonColor: '#f0ad4e',
+        })
+        return 0; // Avoid connection making for no data issue
+    }
     var username = document.getElementById("join-username").value
     roomId = document.getElementById("join-room").value
     if (username == "" || username == null || roomId == "" || roomId == null) {
@@ -275,6 +321,9 @@ function createPeerConnection(id) {
                 case "endGame":
                     endGame(data)
                     break;
+                case "ping":
+                    receivePing(data)
+                    break;
                 default:
                     console.log('Message not supported');
                     break;
@@ -334,6 +383,9 @@ function addPeerConnection(id) {
                 break;
             case "endGame":
                 endGame(data)
+                break;
+            case "ping":
+                receivePing(data)
                 break;
             default:
                 console.log('Message not supported');
@@ -775,37 +827,13 @@ async function parseGuess(username, message, guess) {
     }
 }
 
-// Function to reset the variables of the peer which identify a local state to compare with other peers
-// and defines a global one. This function is called only when the peer is forced to disconnect or destroy itself
-function resetVariablesState() {
-    isRemoved = true;
-    peerId = null;
-    isJoined = false
-    isStarted = false
-    isVoted = false
-    gameMode = false
-    counterGameMode = 0
-    _username = null
-    roomId = null
-    vote = null
-    isWaitingVote = false
-    isWaitingJoin = false
-    numVotes = 0
-    voteList = new Map()
-    usernames = new Map();
-    ids = new Array();
-    peers = new Map();
-    scores = new Map();
-    guessWord = null
-    isInitiator = false;
-}
 
 // Disconnect Peers for every connections he did
 function disconnectPeer() {
     resetVariablesState()
     peer.disconnect()
     cleanContent()
-    
+
     // Manage connection
     var connections = peers.values()
     for (let i = 0; i < peers.size; i++) {
@@ -1044,8 +1072,9 @@ function setWaitingJoin(value) {
 // Manage the leave of a player
 function manageLeave(room, client) {
     console.log('------------ Crash or Leave Management ---------------')
-    console.log('Client ' + client + " is leaving from room " + room)
     var leaver = usernames.get(client)
+    if(leaver == undefined || leaver == null) return 0 // user is not connected
+    console.log('Client ' + client + " is leaving from room " + room)
     console.log('Current data: ')
     console.log('Usernames size: ' + usernames.size)
     console.log('Priorities size: ' + priorities.size)
@@ -1120,10 +1149,36 @@ function manageLeave(room, client) {
     console.log('------------------------------------------------------')
 
 }
+
+
+function ping() {
+    var connections = peers.values()
+    console.log('ping!')
+    console.log(peers.size)
+    if (connections == undefined || connections == null) return 0;
+    for (let i = 0; i < peers.size; i++) {
+        var connection = connections.next().value
+        console.log('connection:' + connection)
+        connection.send({
+            type: "ping",
+            username: _username,
+            id: peerId,
+        })
+    }
+
+}
+
+function receivePing(data){
+    manageLeave(roomId, data.id)
+}
+
 /* ----------------- */
 /*   Window Handlers */
 /* ----------------- */
 
 window.onbeforeunload = function (e) {
+    ping()
     peer.disconnect()
 }
+
+

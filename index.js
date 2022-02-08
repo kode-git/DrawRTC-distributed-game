@@ -220,7 +220,9 @@ function updateScore(scores) {
     var usernames = scores.keys()
     for (let i = 0; i < scores.size; i++) {
         var username = usernames.next().value
-        gameScore.value += "\n" + username + ": " + scores.get(username) + " points"
+        if(username != undefined){ 
+            gameScore.value += "\n" + username + ": " + scores.get(username) + " points"
+        }
     }
 }
 
