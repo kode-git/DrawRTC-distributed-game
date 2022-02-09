@@ -69,19 +69,19 @@ function draw(event) {
 
 // Function to draw who did the painter (if you are a competitor)
 function onDraw(data){
-    if(coord.x == 0 && coord.y == 0){
-        coord.x = data.clientX - canvas.offsetLeft;
-        coord.y = data.clientY - canvas.offsetTop;
-    }
-    coord.x = data.x
-    coord.y = data.y
+    // if(coord.x == 0 && coord.y == 0){
+    //     coord.x = data.clientX - canvas.offsetLeft;
+    //     coord.y = data.clientY - canvas.offsetTop;
+    // }
     ctx.beginPath();
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
     ctx.strokeStyle = 'black';
+    coord.x = data.x -60
+    coord.y = data.y
     ctx.moveTo(coord.x, coord.y);
     coord.x = data.clientX - canvas.offsetLeft;
-    coord.y = data.clientY - canvas.offsetTop - 60;
+    coord.y = data.clientY - canvas.offsetTop -60;
     ctx.lineTo(coord.x, coord.y);
     ctx.stroke();
 }

@@ -1,9 +1,28 @@
 var express = require("express")
 var http = require("http")
-
+var os = require('os')
 // Express app for signalling
 var app = express();
 
+
+const netInterface = os.networkInterfaces();
+var resultsNet = {}
+
+// filtering nets on the interface of the host system
+for (const name of Object.keys(netInterface)) {
+    for (const net of netInterface[name]) {
+        // If the IP is IPv4 type and it is not equal to localhost
+        if (net.family === 'IPv4' && !net.internal) {
+            if (!resultsNet[name]) {
+                resultsNet[name] = [];
+            }
+            resultsNet[name].push(net.address);
+        }
+    }
+}
+// the current host IP is
+console.log("Current Public IP host: " + resultsNet[Object.keys(resultsNet)[0]][0])
+const host = resultsNet[Object.keys(resultsNet)[0]][0]
 // Using socket.io for signaling in WebRTC
 var socketIO = require("socket.io")
 
@@ -17,8 +36,8 @@ app.get("/", function (request, response) {
 var server = http.createServer(app)
 
 // Port of listening
-server.listen(process.env.PORT || 3000, () => {
-    console.log(`signaling server is listening...`)
+server.listen(process.env.PORT || 3000, host, () => {
+    console.log(`signaling server is listening on ` + host + "...")
 })
 
 // Socket for signalling on the express server
