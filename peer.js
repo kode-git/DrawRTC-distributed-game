@@ -1023,14 +1023,14 @@ function scoreSetting() {
 }
 
 // Propagate the draw from painter to competitors
-function propagateDraw(x, y, x1, y1) {
+function propagateDraw(x, y, offsetX, offsetY) {
     if (painter == _username) {
         sendBroadcast({
             type: "draw",
-            clientX: x,
-            clientY: y,
-            x: x1,
-            y: y1,
+            x : x,
+            y : y,
+            offsetX : offsetX,
+            offsetY : offsetY,
             id: peerId,
         })
     }

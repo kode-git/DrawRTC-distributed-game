@@ -128,6 +128,7 @@ body {
 
 #paper {
     background-color: white;
+    margin: 5px 5px;
 }
 
 #game-nav {
@@ -174,19 +175,11 @@ body {
     padding: 0px 10px;
 }
 
-@media screen and (max-height: 450px) {
-    .sidebar {
-        padding-top: 15px;
-    }
-    .sidebar a {
-        font-size: 18px;
-    }
-}
 
 .frame {
     display: flex;
     align-items: space-between;
-    height: 890px;
+    height: 100%;;
     margin-top: 5px;
 }
 
@@ -195,6 +188,7 @@ body {
     top: 0;
     right: 0;
     bottom: 0;
+    background-color: white;
 }
 
 
@@ -204,7 +198,7 @@ pre {
 
 .slider {
     width: 10px;
-    background: #e09200c0;
+    background: #e09200c0; 
 }
 
 .right {
@@ -245,9 +239,9 @@ pre {
     display: flex;
     flex-flow: column wrap;
     justify-content: space-between;
-    width: 800px;
-    max-width: 550px;
-    margin-top: 25px;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 90%;
     margin-left: 10px;
     height: 45%;
     border: var(--border);
@@ -452,3 +446,33 @@ textarea {
     color: black;
     cursor: pointer;
 }
+
+/* Media screen */
+
+@media screen and (max-height: 450px) {
+    .sidebar {
+        padding-top: 15px;
+    }
+    .sidebar a {
+        font-size: 18px;
+    }
+}
+
+@media screen and (max-width: 430px){
+    #submit-create {
+        margin-top: 10px !important;
+    }
+
+    #submit-join {
+        margin-top: 10px !important;
+    }
+}
+
+@media screen and (max-width: 380px){
+    #user-list {
+        align-items: center;
+        position: relative;
+        right: 30px;
+    }
+}
+

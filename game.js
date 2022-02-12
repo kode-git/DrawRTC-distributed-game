@@ -18,7 +18,7 @@ gameScore.value = contentScore;
 // canvas an context declaration and init a void coordinate of the first point of canvas.
 var canvas = document.getElementById('paper')
 var ctx = canvas.getContext('2d')
-var coord = {x: 0, y: 0}
+var coord = { x: 0, y: 0 }
 
 // clean button 
 cleanCanvas = document.getElementById('delete-sweep')
@@ -41,13 +41,13 @@ function stop() {
 }
 
 // clean the paper from every lines recently written
-function clean(){
+function clean() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     propagateClean()
 }
 
 // clean the paper only in local mode
-function cleanLocal(){
+function cleanLocal() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -58,43 +58,42 @@ function draw(event) {
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
     ctx.strokeStyle = 'black';
+    x = coord.x
+    y = coord.y
     ctx.moveTo(coord.x, coord.y);
-    var x = coord.x
-    var y = coord.y
-    reposition(event);
-    ctx.lineTo(coord.x, coord.y);
+    ctx.lineTo(event.offsetX, event.offsetY);
+    coord.x = event.offsetX
+    coord.y = event.offsetY
+    offsetX = coord.x
+    offsetY = coord.y
     ctx.stroke();
-    propagateDraw(event.clientX, event.clientY, x , y)
+    propagateDraw(x,y,offsetX, offsetY)
 }
 
 // Function to draw who did the painter (if you are a competitor)
-function onDraw(data){
-    // if(coord.x == 0 && coord.y == 0){
-    //     coord.x = data.clientX - canvas.offsetLeft;
-    //     coord.y = data.clientY - canvas.offsetTop;
-    // }
+function onDraw(data) {
     ctx.beginPath();
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
     ctx.strokeStyle = 'black';
-    coord.x = data.x -60
+    coord.x = data.x
     coord.y = data.y
     ctx.moveTo(coord.x, coord.y);
-    coord.x = data.clientX - canvas.offsetLeft;
-    coord.y = data.clientY - canvas.offsetTop -60;
-    ctx.lineTo(coord.x, coord.y);
+    ctx.lineTo(data.offsetX, data.offsetY);
+    coord.x = data.offsetX
+    coord.y = data.offsetY
     ctx.stroke();
 }
 
-function onClean(data){
-    if(data.id != null || data.id != undefined){
+function onClean(data) {event
+    if (data.id != null || data.id != undefined) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-    } else{
+    } else {
         console.log('Illegal message format')
     }
 }
 // Activate the drawing on the paper
-function activateCanvas(){
+function activateCanvas() {
     console.log('---------- Activated canvas ----------')
     canvas.addEventListener('mousedown', start);
     canvas.addEventListener('mouseup', stop);
@@ -104,7 +103,7 @@ function activateCanvas(){
 }
 
 // Deactivate the drawing on the paper, we will check only the showing mode
-function deactivateCanvas(){
+function deactivateCanvas() {
     console.log('---------- Activated canvas ----------')
     canvas.removeEventListener('mousedown', start);
     canvas.removeEventListener('mouseup', stop)

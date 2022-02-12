@@ -38,10 +38,10 @@
                         link</a></span>. Good luck and have fun!
             </label>
             <hr>
-            <button type="button" data-toggle="modal" data-target="#modal-create"
+            <button id="submit-create" type="button" data-toggle="modal" data-target="#modal-create"
                 class="btn btn-warning btn-shadow">Create
                 Game</button>
-            <button type="button" data-toggle="modal" data-target="#modal-join" class="btn btn-warning btn-shadow">Join
+            <button id="submit-join" type="button" data-toggle="modal" data-target="#modal-join" class="btn btn-warning btn-shadow">Join
                 Game</button>
             <br>
             <label id="copy">&copy; Idea from Google, project by <a style="color:#ffc107; text-decoration: underline;"
@@ -179,7 +179,7 @@
                         </i></a>
                 </div>
                 <div style="margin-top: 3px"></div>
-                <canvas height="867px" width="1200" id="paper"></canvas>
+                <canvas height="800px" width="1000" id="paper"></canvas>
             </div>
             <div class="slider">
 
@@ -201,29 +201,6 @@
 
                     <main id="content-chat" class="msger-chat">
                         
-                        <!-- Template for the message chats 
-                        <div class="msg left-msg">
-                            <div style="background-image: url(avatars/5.png)" class="msg-img"></div>
-
-                            <div class="msg-bubble">
-
-                                <div id="peer-msg-1" class="msg-text">
-                                    Message of other peer
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="msg right-msg">
-                            <div style="background-image: url(avatars/4.png)" class="msg-img"></div>
-
-                            <div class="msg-bubble ">
-
-                                <div class="msg-text ">
-                                    This is my message!
-                                </div>
-                            </div>
-                        </div>
-                        -->
                     </main>
 
                     <form class="msger-inputarea ">
@@ -304,7 +281,7 @@
         crossorigin="anonymous "></script>
     <!-- Internal scripts for peers communication and Javascript management-->
     <script src="/guess.js"></script>
-    <script src="/index.js "></script>
+    <script src="/view.js "></script>
     <script src="/peer.js "></script>
     <script src="/game.js "></script>
 </body>
