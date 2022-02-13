@@ -20,6 +20,9 @@ for (const name of Object.keys(netInterface)) {
         }
     }
 }
+
+
+  
 // the current host IP is
 console.log("Current Public IP host: " + resultsNet[Object.keys(resultsNet)[0]][0])
 const host = resultsNet[Object.keys(resultsNet)[0]][0]

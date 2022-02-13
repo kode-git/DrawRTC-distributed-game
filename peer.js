@@ -207,6 +207,13 @@ function initSocketHandlers() {
             text: 'Room ' + room + ' already exists, retry to create a new one',
             confirmButtonColor: '#f0ad4e',
         })
+        cleanLocal()
+        toggleHomepage()
+        socket.disconnect()
+        socket = io.connect()
+        initSocketHandlers()
+        disconnectPeer()
+        removePeer()
     })
 
     // Error handler for the joining on a game room when it doesn't exist
@@ -218,6 +225,13 @@ function initSocketHandlers() {
             text: 'Game ' + room + ' doesn\'t exists, please copy the correct id or create a new game',
             confirmButtonColor: '#f0ad4e',
         })
+        cleanLocal()
+        toggleHomepage()
+        socket.disconnect()
+        socket = io.connect()
+        initSocketHandlers()
+        disconnectPeer()
+        removePeer()
     })
 
 }
@@ -271,10 +285,14 @@ function createPeerConnection(id) {
         connection.on('close', function () {
             // The connection is closed on the sender endpoint, so we need to retrieve the peer end on
             // the connection itself.
-            console.log('Closing connection with: ' + connection.peer)
+            console.log('Closing connection with: ' + connection.peer + "on receiver endpoint")
+            localState()
             id = connection.peer
             if (isStarted) {
-                // TO-DO: Updating content 
+                console.log('It is isStarted')
+            }
+            if(gameMode){
+                console.log('Game Mode management')
             }
             scores.delete(usernames.get(id))
             usernames.delete(id)
@@ -394,10 +412,14 @@ function addPeerConnection(id) {
     })
 
     connection.on('close', function () {
-        console.log('Connection closed with: ' + id)
+        console.log('Connection closed with: ' + id + " on sender endpoint")
+        localState()
         scores.delete(usernames.get(id))
         if (isStarted) {
-            // Management inside peer
+            console.log('It is isStarted')
+        }
+        if(gameMode){
+            console.log('Game Mode management')
         }
         usernames.delete(id)
         peers.delete(id)
@@ -1074,6 +1096,7 @@ function manageLeave(room, client) {
     console.log('------------ Crash or Leave Management ---------------')
     var leaver = usernames.get(client)
     if(leaver == undefined || leaver == null) return 0 // user is not connected
+    console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
     console.log('Client ' + client + " is leaving from room " + room)
     console.log('Current data: ')
     console.log('Usernames size: ' + usernames.size)
@@ -1082,10 +1105,12 @@ function manageLeave(room, client) {
     console.log('Ids collections length: ' + ids.length)
     if (gameMode) {
         console.log('Score size: ' + scores.size)
+             
     }
     usernames.delete(client)
     priorities.delete(client)
     peers.delete(client)
+    scores.delete(leaver)
     ids = ids.filter(function (value, index, arr) {
         return value != client
     });
@@ -1167,6 +1192,30 @@ function ping() {
     }
 
 }
+
+function localState(){
+    console.log('--------- Local State Checking --------------')
+    console.log('isStarted value: ' + isStarted)
+    console.log('isJoined value: ' + isJoined)
+    console.log('isGameMode value: ' + gameMode)
+    console.log('isVoted value: ' + isVoted)
+    console.log('isWaitingVote value: ' + isWaitingVote)
+    console.log('isWaitingJoin value: ' + isWaitingJoin)
+    console.log('Number of votes: ' + numVotes)
+    console.log('Current own vote: ' + vote)
+    console.log('isRemoved value: ' + isRemoved)
+    console.log('isInitiator value:'  + isInitiator)
+    console.log('Painter value: ' + painter)
+    console.log('Peers in gameMode: ' + counterGameMode)
+    console.log('Number of peer in the mesh: ' + (peers.size + 1))
+    console.log('Number of peers ids: ' + ids.length)
+    console.log('Scores elements: ' + scores.size)
+    console.log('Usernames size of other peers: '  + usernames.size)
+    console.log('Username of own peers: ' + _username)
+    console.log('Room ID: ' + roomId) 
+    console.log('---------------------------------------------')
+}
+
 
 function receivePing(data){
     manageLeave(roomId, data.id)
