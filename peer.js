@@ -1,76 +1,82 @@
 // using some of the most common STUN Servers to retrieve our public IP and port
 const configuration = {
     'iceServers': [{
-        url: 'stun:stun.l.google.com:19302'
-    }, {
-        url: 'stun:stun.anyfirewall.com:3478'
-    }, {
         url: 'turn:turn.anyfirewall.com:443?transport=tcp',
         credential: 'webrtc',
         username: 'webrtc'
     }]
 }
 
+// Peer state object for the data management in the peer locally
+var state = {
+    roomId: null, // state.roomId which defines the peer mesh
+    peerId: null, // peerID which defines the peer unique key
+    username: null, // own username of the peer, it is set only when a client join in the lobby
+    usernames: new Map(), // list of usernames related to the mesh 
+    ids: new Array(), // ids of the list of peers in the mesh network
+    peers: new Map(), // peers connections with the current one
+    peerStatus: { // status which defines a collection of flag which defines a temporal peer status
+        isJoined: false, // if the peer is joined in the game session 
+        isWaitingJoin: false, // if the peer is waiting other peers in the game session
+        isRemoved: false, // if in the mesh the peer is removed
+        isStarted: false, // if the peer is in the interface of the game but the session game is not started
+    },
+    voteSystem: {
+        vote: null, // the current peer vote
+        isVoted: false, // peer didn't announce his vote
+        voteList: new Map(), // defines the local list of votes
+        numVotes: 0, // number of votes which the peer have in the local field
+        isVotingSession: false, // if the voting session is started
+        isWaitingVote: false, // if the peer is waiting other votes 
+    },
+    gameStatus: { // defines variables for the game session
+        counterGameMode: 0,  // counter of the peers in the game mode
+        isGameMode: false,
+        guessWord: null, // defines the guess word (only the painter)
+        painter: null, // defines the painter usernames (after the votes)
+        scores: new Map(), // defines the hashmap of scores for the game session
+    },
+    prioritySystem: { // Priority system
+        priority: null, // own priority of the peer
+        priorities: new Map(), // priorities list of other peers in the mesh
+    },
+    isInitiator: false, // the peer is the creator of the mesh
+    socket: io.connect(), // socket for signalling server
+    peer: null, // current peer object
+}
+
 // Function to reset the variables of the peer which identify a local state to compare with other peers
 // and defines a global one. This function is called only when the peer is forced to disconnect or destroy itself
 function resetVariablesState() {
-    isRemoved = true;
-    peerId = null;
-    isJoined = false
-    isStarted = false
-    isVoted = false
-    gameMode = false
-    counterGameMode = 0
-    _username = null
-    roomId = null
-    vote = null
-    isWaitingVote = false
-    isWaitingJoin = false
-    numVotes = 0
-    voteList = new Map()
-    usernames = new Map();
-    ids = new Array();
-    peers = new Map();
-    scores = new Map();
-    guessWord = null
-    isInitiator = false;
+    state.peerStatus.isRemoved = true;
+    state.peerId = null;
+    state.peerStatus.isJoined = false
+    state.peerStatus.isStarted = false
+    state.voteSystem.isVoted = false
+    state.gameStatus.isGameMode = false
+    state.gameStatus.counterGameMode = 0
+    state.username = null
+    state.roomId = null
+    state.voteSystem.vote = null
+    state.voteSystem.isWaitingVote = false
+    state.peerStatus.isWaitingJoin = false
+    state.voteSystem.numVotes = 0
+    state.voteSystem.voteList = new Map()
+    state.usernames = new Map();
+    state.ids = new Array();
+    state.peers = new Map();
+    state.gameStatus.scores = new Map();
+    state.gameStatus.guessWord = null
+    state.isInitiator = false;
 }
 
 // Clean previous session in case of garbage
 resetVariablesState()
 
-
-var roomId; // Mesh connections on P2P environment
-var socket = io.connect() // socket opening
-var _username; // Username of the player
-var peerId; // your own id, the owned peer is not included in peers
-var peer; // your peer informations
-var priority; // priority peer level for the priority algorthm
-var priorities = new Map(); // priorities for peers [peerId : priority]
-var isRemoved = false; // if the node is remove (client with no peer connection)
-var usernames = new Map(); // hash for mapping peer id with their own usernames [peerId : username ]
-var ids = new Array() // peer id in the mesh
-var peers = new Map(); // hash for mapping peer id with peers [ peerId : connection ]
-var isInitiator; // identify if the current client is the creator of the room
-var vote; // Vote of the painter 
-var gameMode = false; // if user is in game mode
-var counterGameMode = 0;
-var painter; // the current painter of the game
-var isVoted = false; // If the user is not voted
-var isWaitingVote = false // If the user press the start button and wait other votes
-var isWaitingJoin = false // If the user waiting joining in game but the user left
-var numVotes = 0; // defined the number of votes on the peer
-var voteList = new Map(); // list of votes [ username : candidateVote]
-var isVotingSession = false // if player receive votes
-var isStarted = false; // if the game is started
-var isJoined = false; // if the user is in the game mode
-var scores = new Map(); // hash for mapping the game score with [ username : score_value]
-var guessWord; // the guess word set on painter and check on chat messages from competitor
 createRoom = document.getElementById('create-button') // create button
 createRoom.addEventListener("click", createGame); // create Lobby as the initializator
 joinRoom = document.getElementById('join-button') // join button
 joinRoom.addEventListener("click", joinGame) // join in an existing lobby
-const delay = ms => new Promise(res => setTimeout(res, ms)); // async delay
 
 /* --------------- */
 /*    Main calls   */
@@ -80,7 +86,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms)); // async delay
 function settingId() { return '_' + Math.random().toString(36).substr(2, 9); }
 
 function createGame() {
-    if(!socket.connected || socket.disconnected){
+    if(!state.socket.connected || state.socket.disconnected){
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
@@ -90,7 +96,7 @@ function createGame() {
         return 0; // Avoid connection making for no data issue
     }
     var username = document.getElementById("create-username").value
-    priority = 0
+    state.prioritySystem.priority = 0
     if (username == "" || username == null) {
         Swal.fire({
             icon: 'error',
@@ -101,14 +107,14 @@ function createGame() {
         return 0; // Avoid connection making for no data issue
     }
     // Setting random Id for the room. People must use it to join with friends
-    roomId = settingId()
-    _username = username
-    socket.emit('create', roomId, _username)
+    state.roomId = settingId()
+    state.username = username
+    state.socket.emit('create', state.roomId, state.username)
 }
 
 // function to join to an existing game lobby
 function joinGame() {
-    if(!socket.connected || socket.disconnected){
+    if(!state.socket.connected || state.socket.disconnected){
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
@@ -118,8 +124,8 @@ function joinGame() {
         return 0; // Avoid connection making for no data issue
     }
     var username = document.getElementById("join-username").value
-    roomId = document.getElementById("join-room").value
-    if (username == "" || username == null || roomId == "" || roomId == null) {
+    state.roomId = document.getElementById("join-room").value
+    if (username == "" || username == null || state.roomId == "" || state.roomId == null) {
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
@@ -128,10 +134,10 @@ function joinGame() {
         })
         return 0
     }
-    _username = username
-    if (!isInitiator) {
-        console.log(_username + " request to join to room " + roomId)
-        socket.emit("join", roomId, username)
+    state.username = username
+    if (!state.isInitiator) {
+        console.log(state.username + " request to join to room " + state.roomId)
+        state.socket.emit("join", state.roomId, username)
     }
 }
 
@@ -147,50 +153,50 @@ function initSocketHandlers() {
     /*     Connection Management    */
     /* ---------------------------- */
 
-    socket.on('init', function (room, client) {
+    state.socket.on('init', function (room, client) {
         console.log('Init on the client: ' + client)
-        console.log('Room: ' + room + " is created by " + _username)
-        isInitiator = true
-        roomId = room
-        peerId = client
-        usernames.set(peerId, _username)
-        scores.set(_username, 0)
-        modifyContentLobby(usernames)
+        console.log('Room: ' + room + " is created by " + state.username)
+        state.isInitiator = true
+        state.roomId = room
+        state.peerId = client
+        state.usernames.set(state.peerId, state.username)
+        state.gameStatus.scores.set(state.username, 0)
+        modifyContentLobby(state.usernames)
         createPeerConnection(client)
         // going to the lobby and waiting for new users
-        toggleLobby(room, _username)
+        toggleLobby(room, state.username)
         // peer are not able here because the creator is alone in the room
     })
 
-    socket.on("joined", function (room, players, id) {
+    state.socket.on("joined", function (room, players, id) {
         console.log('Your id: ' + id)
-        peerId = id;
-        roomId = room;
+        state.peerId = id;
+        state.roomId = room;
         console.log('Current players:')
         for (let i = 0; i < players.length; i++) {
             console.log('User ' + i + ': ' + players[i])
         }
-        roomId = room
-        console.log('You are: ' + _username)
-        toggleLobby(room, _username)
-        if (!isInitiator) {
+        state.roomId = room
+        console.log('You are: ' + state.username)
+        toggleLobby(room, state.username)
+        if (!state.isInitiator) {
             createPeerConnection(id)
         }
     })
 
-    socket.on('new', function (room, client) {
+    state.socket.on('new', function (room, client) {
         // making a new Peer Connection with the client
-        if (peer == null) {
+        if (state.peer == null) {
             // illegal peer
             console.log('Error: Illegal access in the room')
         } else {
             console.log('Client ' + client + " joined in the room " + room)
-            roomId = room // setting room in case it isn't
+            state.roomId = room // setting room in case it isn't
             addPeerConnection(client);
         }
     })
 
-    socket.on('leave', function (room, client) {
+    state.socket.on('leave', function (room, client) {
         manageLeave(room, client)
     })
 
@@ -199,7 +205,7 @@ function initSocketHandlers() {
     /* ---------------------------- */
 
     // Error handler for the alreadyExists game room during the create mode
-    socket.on("alreadyExists", function (room) {
+    state.socket.on("alreadyExists", function (room) {
         console.log("Game " + room + " already exists, need to retry create a new one")
         Swal.fire({
             icon: 'error',
@@ -209,15 +215,15 @@ function initSocketHandlers() {
         })
         cleanLocal()
         toggleHomepage()
-        socket.disconnect()
-        socket = io.connect()
+        state.socket.disconnect()
+        state.socket = io.connect()
         initSocketHandlers()
         disconnectPeer()
         removePeer()
     })
 
     // Error handler for the joining on a game room when it doesn't exist
-    socket.on("joinError", function (room) {
+    state.socket.on("joinError", function (room) {
         console.log("Room " + room + ", do not exist, you must create it!")
         Swal.fire({
             icon: 'error',
@@ -227,8 +233,8 @@ function initSocketHandlers() {
         })
         cleanLocal()
         toggleHomepage()
-        socket.disconnect()
-        socket = io.connect()
+        state.socket.disconnect()
+        state.socket = io.connect()
         initSocketHandlers()
         disconnectPeer()
         removePeer()
@@ -246,40 +252,40 @@ initSocketHandlers()
 function createPeerConnection(id) {
 
     console.log('Creation of peer connection')
-    if (peer != null && !isRemoved) {
+    if (state.peer != null && !state.peerStatus.isRemoved) {
         console.log('Peer already created')
         return 0
     }
-    peer = new Peer(id, config = configuration)
+    state.peer = new Peer(id, config = configuration)
     // Peer handlers 
     // Event handler to check id
-    peer.on('open', function (id) {
-        console.log('Open handler: your own id for peer is: ' + id)
+    state.peer.on('open', function (id) {
+        console.log('Open peer: your own id for peer is: ' + id)
         // Append your username 
-        priority = peers.size + 1 + randomIntFromInterval(1, 2147483647)
-        usernames.set(id, _username)
-        scores.set(_username, 0)
+        state.prioritySystem.priority = state.peers.size + 1 + randomIntFromInterval(1, 2147483647)
+        state.usernames.set(id, state.username)
+        state.gameStatus.scores.set(state.username, 0)
     })
 
-    peer.on("disconnected", function () {
+    state.peer.on("disconnected", function () {
         // void                                                                                                                  
     })
 
-    peer.on('close', function () {
-        peer.destroy()
+    state.peer.on('close', function () {
+        state.peer.destroy()
     })
 
-    peer.on("connection", function (connection) {
+    state.peer.on("connection", function (connection) {
         connection.on('open', function () {
-            console.log('Adding new connection with the peer: ' + peerId)
+            console.log('Adding new connection with the peer: ' + state.peerId)
             connection.send({
                 type: "sendUsername",
-                username: _username,
-                id: peerId,
-                priorityPeer: priority,
-                mode: gameMode,
+                username: state.username,
+                id: state.peerId,
+                priorityPeer: state.prioritySystem.priority,
+                mode: state.gameStatus.isGameMode,
             })
-            peers.set(connection.peer, connection)
+            state.peers.set(connection.peer, connection)
         })
 
         connection.on('close', function () {
@@ -288,19 +294,19 @@ function createPeerConnection(id) {
             console.log('Closing connection with: ' + connection.peer + "on receiver endpoint")
             localState()
             id = connection.peer
-            if (isStarted) {
+            if (state.peerStatus.isStarted) {
                 console.log('It is isStarted')
             }
-            if(gameMode){
+            if(state.gameStatus.isGameMode){
                 console.log('Game Mode management')
             }
-            scores.delete(usernames.get(id))
-            usernames.delete(id)
-            peers.delete(id)
-            ids = ids.filter(function (value, index, arr) {
+            state.gameStatus.scores.delete(state.usernames.get(id))
+            state.usernames.delete(id)
+            state.peers.delete(id)
+            state.ids = state.ids.filter(function (value, index, arr) {
                 return value != id
             })
-            modifyContentLobby(usernames)
+            modifyContentLobby(state.usernames)
         })
 
 
@@ -347,24 +353,25 @@ function createPeerConnection(id) {
                     break;
             }
         })
-        // peers.set(id, connection)
+        // state.peers.set(id, connection)
     })
 
     console.log('Current own peer: ')
-    console.log(peer)
+    console.log(state.peer)
 }
 
 // Adding of a new connection for your peer (Sender endpoint)
 function addPeerConnection(id) {
-    var connection = peer.connect(id)
-
+    var connection = state.peer.connect(id)
+    console.log('Connection: ',connection)
     connection.on('open', function () {
+        console.log('Open connection...')
         connection.send({
             type: "sendUsername",
-            username: _username,
-            id: peerId,
-            priorityPeer: priority,
-            mode: gameMode,
+            username: state.username,
+            id: state.peerId,
+            priorityPeer: state.prioritySystem.priority,
+            mode: state.gameStatus.isGameMode,
         })
     })
 
@@ -414,27 +421,28 @@ function addPeerConnection(id) {
     connection.on('close', function () {
         console.log('Connection closed with: ' + id + " on sender endpoint")
         localState()
-        scores.delete(usernames.get(id))
-        if (isStarted) {
+        state.gameStatus.scores.delete(state.usernames.get(id))
+        if (state.peerStatus.isStarted) {
             console.log('It is isStarted')
         }
-        if(gameMode){
+        if(state.gameStatus.isGameMode){
             console.log('Game Mode management')
         }
-        usernames.delete(id)
-        peers.delete(id)
-        ids = ids.filter(function (value, index, arr) {
+        state.usernames.delete(id)
+        state.peers.delete(id)
+        state.ids = state.ids.filter(function (value, index, arr) {
             return value != id
         })
-        modifyContentLobby(usernames)
+        modifyContentLobby(state.usernames)
     })
 
     connection.on('disconnected', function () {
         console.log('Disconnection with: ' + id)
     })
 
-    peers.set(connection.peer, connection)
-    console.log("Peer added, current size:" + peers.size)
+    state.peers.set(connection.peer, connection)
+    console.log("Peer added, current size:" + state.peers.size)
+
 
 }
 /* -------------------------------------- */
@@ -447,19 +455,19 @@ function sendUsernameSender(data) {
     if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
         console.log('Invalid message format')
     } else {
-        if (usernames.get(data.username) != undefined || usernames.get(data.username) != null || data.username == _username) {
+        if (state.usernames.get(data.username) != undefined || state.usernames.get(data.username) != null || data.username == state.username) {
             connection.send({
                 type: "alreadyExists",
                 username: data.username,
-                id: peerId,
+                id: state.peerId,
             })
         } else {
             console.log('Received: ' + data.username)
-            usernames.set(data.id, data.username)
+            state.usernames.set(data.id, data.username)
             // maybe if it is double
-            scores.set(data.username, 0)
-            priorities.set(data.id, data.priorityPeer)
-            ids.push(data.id) // pushing the client id
+            state.gameStatus.scores.set(data.username, 0)
+            state.prioritySystem.priorities.set(data.id, data.priorityPeer)
+            state.ids.push(data.id) // pushing the client id
             console.log('Priority of ' + data.id + " is: " + data.priorityPeer)
             if (data.mode) {
 
@@ -470,13 +478,13 @@ function sendUsernameSender(data) {
                     confirmButtonColor: '#f0ad4e',
                 })
                 toggleHomepage()
-                socket.disconnect()
-                socket = io.connect()
+                state.socket.disconnect()
+                state.socket = io.connect()
                 initSocketHandlers()
                 disconnectPeer()
                 removePeer()
             }
-            modifyContentLobby(usernames)
+            modifyContentLobby(state.usernames)
         }
     }
     console.log('------------------------------------------------')
@@ -487,7 +495,7 @@ function sendUsernameReceiver(data) {
     console.log('------------- Send Username Receiver -------------')
     if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
         console.log('Invalid message format')
-    } else if (isStarted) {
+    } else if (state.peerStatus.isStarted) {
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
@@ -495,14 +503,14 @@ function sendUsernameReceiver(data) {
             confirmButtonColor: '#f0ad4e',
         })
         toggleHomepage()
-        socket.disconnect()
-        socket = io.connect()
+        state.socket.disconnect()
+        state.socket = io.connect()
         initSocketHandlers()
         disconnectPeer()
         removePeer()
     } else {
         console.log('New Peer connection')
-        if (usernames.get(data.username) != undefined || usernames.get(data.username) != null || data.username == _username) {
+        if (state.usernames.get(data.username) != undefined || state.usernames.get(data.username) != null || data.username == state.username) {
             Swal.fire({
                 icon: 'error',
                 title: 'Oops...',
@@ -510,18 +518,18 @@ function sendUsernameReceiver(data) {
                 confirmButtonColor: '#f0ad4e',
             })
             toggleHomepage()
-            socket.disconnect()
-            socket = io.connect()
+            state.socket.disconnect()
+            state.socket = io.connect()
             initSocketHandlers()
             disconnectPeer()
             removePeer()
         } else {
             console.log('Received: ' + data.username)
-            usernames.set(data.id, data.username)
+            state.usernames.set(data.id, data.username)
             // maybe if it is double
-            scores.set(data.username, 0)
-            priorities.set(data.id, data.priorityPeer)
-            ids.push(data.id) // pushing the client id
+            state.gameStatus.scores.set(data.username, 0)
+            state.prioritySystem.priorities.set(data.id, data.priorityPeer)
+            state.ids.push(data.id) // pushing the client id
             console.log('Priority of ' + data.id + " is: " + data.priorityPeer)
             if (data.mode) {
                 Swal.fire({
@@ -531,13 +539,13 @@ function sendUsernameReceiver(data) {
                     confirmButtonColor: '#f0ad4e',
                 })
                 toggleHomepage()
-                socket.disconnect()
-                socket = io.connect()
+                state.socket.disconnect()
+                state.socket = io.connect()
                 initSocketHandlers()
                 disconnectPeer()
                 removePeer()
             }
-            modifyContentLobby(usernames)
+            modifyContentLobby(state.usernames)
         }
     }
     console.log('--------------------------------------------------')
@@ -550,32 +558,32 @@ function joinGameReceiver(data) {
     if (data.username == undefined) {
         console.log('Invalid message format')
     } else {
-        if (isJoined) {
+        if (state.peerStatus.isJoined) {
             notifyEnter(data.username)
 
         }
-        counterGameMode++
-        console.log('Current counter of game mode: ' + counterGameMode + ", on the joining of client: " + data.id)
-        console.log('Current connected peers: ' + peers.size)
-        if ((peers.size + 1) <= counterGameMode && !isStarted) {
+        state.gameStatus.counterGameMode++
+        console.log('Current counter of game mode: ' + state.gameStatus.counterGameMode + ", on the joining of client: " + data.id)
+        console.log('Current connected peers: ' + state.peers.size)
+        if ((state.peers.size + 1) <= state.gameStatus.counterGameMode && !state.peerStatus.isStarted) {
             // peers are in the game mode
             console.log('Game mode: Available')
             sendBroadcast({
                 type: 'availableGame',
-                id: peerId,
+                id: state.peerId,
             })
             toggleGameButton(false)
 
         } else {
             toggleGameButton(true)
         }
-        console.log("Size of scores: " + scores.size)
+        console.log("Size of state.gameStatus.scores: " + state.gameStatus.scores.size)
         // Fixing missing propagation (Avoiding redundance message caching)
-        if (scores.size != peers.size && !isStarted) {
+        if (state.gameStatus.scores.size != state.peers.size && !state.peerStatus.isStarted) {
             // resize it before the game start
             scoreSetting()
         }
-        updateScore(scores)
+        updateScore(state.gameStatus.scores)
     }
     console.log('--------------------------------------------------')
 }
@@ -586,33 +594,33 @@ function joinGameSender(data) {
     if (data.username == undefined) {
         console.log('Invalid message format')
     } else {
-        if (isJoined) {
+        if (state.peerStatus.isJoined) {
             notifyEnter(data.username)
 
         }
-        counterGameMode++
-        console.log('Current counter of game mode: ' + counterGameMode + ", on the joining of client: " + data.id)
-        console.log('Current connected peers: ' + peers.size)
+        state.gameStatus.counterGameMode++
+        console.log('Current counter of game mode: ' + state.gameStatus.counterGameMode + ", on the joining of client: " + data.id)
+        console.log('Current connected state.peers: ' + state.peers.size)
         // +1 for the current peer consideration
-        if ((peers.size + 1) <= counterGameMode && !isStarted) {
+        if ((state.peers.size + 1) <= state.gameStatus.counterGameMode && !state.peerStatus.isStarted) {
             // peers are in the game mode
             console.log('Game mode: Available')
             sendBroadcast({
                 type: 'availableGame',
-                id: peerId,
+                id: state.peerId,
             })
             toggleGameButton(false)
 
         } else {
             toggleGameButton(true)
         }
-        console.log("Size of scores: " + scores.size)
+        console.log("Size of scores: " + state.gameStatus.scores.size)
         // Fixing missing propagation (Avoiding redundance message caching)
-        if (scores.size != peers.size && !isStarted) {
+        if (state.gameStatus.scores.size != state.peers.size && !state.peerStatus.isStarted) {
             // resize it before the game start
             scoreSetting()
         }
-        updateScore(scores)
+        updateScore(state.gameStatus.scores)
     }
     console.log('-----------------------------------------------')
 }
@@ -623,14 +631,14 @@ function votePainter(data) {
     if (data.id == null || data.candidate == null || data.candidate == undefined || data.id == undefined) {
         console.log('Illegal format error')
     } else {
-        isVotingSession = true
-        numVotes += 1
+        state.voteSystem.isVotingSession = true
+        state.voteSystem.numVotes += 1
         console.log('Received: ' + data.candidate + " as a new vote")
         if (data.priority) {
             console.log('Vote is on priority (given by the initiator)')
         }
-        voteList.set(data.candidate, (voteList.get(data.candidate) + data.weigth))
-        console.log('Current number of votes: ' + numVotes)
+        state.voteSystem.voteList.set(data.candidate, (state.voteSystem.voteList.get(data.candidate) + data.weigth))
+        console.log('Current number of votes: ' + state.voteSystem.numVotes)
         // this will be true for every peer except the last one
         checkVoteResults()
     }
@@ -643,8 +651,8 @@ function propagateScores(data) {
         console.log('Illegal format error')
     } else {
         // we have already the painter, so we don't need to take it from the message
-        if (scores.get(painter) != undefined || scores.get(painter) != null) scores.delete(painter)
-        updateScore(scores)
+        if (state.gameStatus.scores.get(state.gameStatus.painter) != undefined || state.gameStatus.scores.get(state.gameStatus.painter) != null) state.gameStatus.scores.delete(state.gameStatus.painter)
+        updateScore(state.gameStatus.scores)
     }
 }
 
@@ -653,10 +661,10 @@ function propagateChatMessage(avatarNumber, message) {
     // TO-DO: Test the correct distributed order, may use the timestamp for ordering.
     sendBroadcast({
         type: "sendChatMessage",
-        username: _username,
+        username: state.username,
         content: message,
         avatar: avatarNumber,
-        id: peerId,
+        id: state.peerId,
     })
 }
 
@@ -668,12 +676,12 @@ function sendChatMessage(data) {
         || data.avatar == undefined) {
         console.log('Illegal format error')
     } else {
-        if (gameMode)
+        if (state.gameStatus.isGameMode)
             putPropagatedMessage(data.avatar, data.username, data.content)
 
-        if (painter != undefined && painter != null && painter == _username) {
+        if (state.gameStatus.painter != undefined && state.gameStatus.painter != null && state.gameStatus.painter == state.username) {
             // this is only for the painter view
-            parseGuess(data.username, data.content, guessWord)
+            parseGuess(data.username, data.content, state.gameStatus.guessWord)
         }
     }
 }
@@ -685,14 +693,14 @@ function guessed(data) {
     } else {
         console.log('------------ Guessed --------------')
 
-        if (scores.get(data.player) == undefined) {
+        if (state.gameStatus.scores.get(data.player) == undefined) {
             console.log('Error, the user is not legal, the peer' + data.id + ' did a cheat message!')
         } else {
             // local setting
-            scores.set(data.player, scores.get(data.player) + 1)
-            updateScore(scores)
-            if (scores.get(data.player) == 2) {
-                if (data.player == _username) {
+            state.gameStatus.scores.set(data.player, state.gameStatus.scores.get(data.player) + 1)
+            updateScore(state.gameStatus.scores)
+            if (state.gameStatus.scores.get(data.player) == 2) {
+                if (data.player == state.username) {
                     Swal.fire({
                         icon: 'info',
                         title: 'You are the winner!!',
@@ -709,14 +717,14 @@ function guessed(data) {
                 }
                 cleanLocal()
                 toggleHomepage()
-                socket.disconnect()
-                socket = io.connect()
+                state.socket.disconnect()
+                state.socket = io.connect()
                 initSocketHandlers()
                 disconnectPeer()
                 removePeer()
                 // removePeer() no need
             } else {
-                if (data.player == _username) {
+                if (data.player == state.username) {
                     // you guessed the word!
                     Swal.fire({
                         icon: 'info',
@@ -748,8 +756,8 @@ function endGame(data) {
     if (data.id != null || data.id != undefined) {
         cleanLocal()
         toggleHomepage()
-        socket.disconnect()
-        socket = io.connect()
+        state.socket.disconnect()
+        state.socket = io.connect()
         initSocketHandlers()
         disconnectPeer()
         removePeer()
@@ -767,10 +775,10 @@ function sendBroadcast(message) {
         console.log('Illegal format error')
     } else {
         console.log('Broadcast calling for message: ' + message.type)
-        console.log('Number of peers to broadcast the message: ' + peers.size)
-        console.log(peers)
-        var connections = peers.values()
-        for (let i = 0; i < peers.size; i++) {
+        console.log('Number of peers to broadcast the message: ' + state.peers.size)
+        console.log(state.peers)
+        var connections = state.peers.values()
+        for (let i = 0; i < state.peers.size; i++) {
             var connection = connections.next().value
             console.log('Connection sent:' + connection.toString())
             connection.send(message)
@@ -785,7 +793,7 @@ function removePeer() {
     console.log('---------- Remove Peer --------------')
     resetVariablesState()
     cleanContent()
-    if (peer != undefined) peer.destroy()
+    if (state.peer != undefined) state.peer.destroy()
     console.log('-------------------------------------')
 }
 
@@ -808,19 +816,19 @@ async function parseGuess(username, message, guess) {
             confirmButtonColor: '#f0ad4e',
         })
         // local setting
-        scores.set(username, scores.get(username) + 1)
-        updateScore(scores)
+        state.gameStatus.scores.set(username, state.gameStatus.scores.get(username) + 1)
+        updateScore(state.gameStatus.scores)
         // propagate new settings
         sendBroadcast({
             type: "guessed",
             word: guess,
             player: username,
-            id: peerId,
+            id: state.peerId,
         })
-        guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
-        updateGuessContent(guessWord)
+        state.gameStatus.guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
+        updateGuessContent(state.gameStatus.guessWord)
         // TO-DO: Control on winner here and in Guessed function (Change the 2 with 10)
-        if (scores.get(username) >= 2) {
+        if (state.gameStatus.scores.get(username) >= 2) {
             console.log('The player ' + username + " won the game!")
             Swal.fire({
                 icon: 'info',
@@ -831,13 +839,13 @@ async function parseGuess(username, message, guess) {
             // disconnectPeer()
             sendBroadcast({
                 type: "endGame",
-                id: peerId,
+                id: state.peerId,
             })
             await delay(2000)
             cleanLocal()
             toggleHomepage()
-            socket.disconnect()
-            socket = io.connect()
+            state.socket.disconnect()
+            state.socket = io.connect()
             initSocketHandlers()
             disconnectPeer()
             removePeer()
@@ -853,12 +861,12 @@ async function parseGuess(username, message, guess) {
 // Disconnect Peers for every connections he did
 function disconnectPeer() {
     resetVariablesState()
-    peer.disconnect()
+    state.peer.disconnect()
     cleanContent()
 
     // Manage connection
-    var connections = peers.values()
-    for (let i = 0; i < peers.size; i++) {
+    var connections = state.peers.values()
+    for (let i = 0; i < state.peers.size; i++) {
         var connection = connections.next().value
         connection.close()
     }
@@ -868,13 +876,13 @@ function disconnectPeer() {
 // not part of the game but is the guess word creator (on drawing)
 function removePainterScore() {
     console.log('-------- Remove Painter Score --------')
-    console.log('Removing ' + painter + ' from score table')
-    scores.delete(painter)
-    updateScore(scores)
+    console.log('Removing ' + state.gameStatus.painter + ' from score table')
+    state.gameStatus.scores.delete(state.gameStatus.painter)
+    updateScore(state.gameStatus.scores)
     console.log('--------------------------------------')
     sendBroadcast({
         type: "propagateScores",
-        id: peerId,
+        id: state.peerId,
     })
 }
 
@@ -882,26 +890,26 @@ function removePainterScore() {
 function resetVoteSystem(leaver) {
     console.log('--------- Reset Vote System ----------')
     isVoted = false
-    isWaitingVote = false
-    numVotes = 0
-    vote = null
-    voteList = new Map()
+    state.voteSystem.isWaitingVote = false
+    state.voteSystem.numVotes = 0
+    state.voteSystem.vote = null
+    state.voteSystem.voteList = new Map()
     console.log('Reset vote list...')
-    console.log(usernames)
-    console.log('Size of usernames: ' + usernames.size)
-    voteList.set(_username, 0)
-    var listUsernames = usernames.values()
-    for (let i = 0; i < usernames.size; i++) {
-        voteList.set(listUsernames.next().value, 0)
+    console.log(state.usernames)
+    console.log('Size of usernames: ' + state.usernames.size)
+    state.voteSystem.voteList.set(state.username, 0)
+    var listUsernames = state.usernames.values()
+    for (let i = 0; i < state.usernames.size; i++) {
+        state.voteSystem.voteList.set(listUsernames.next().value, 0)
     }
     console.log('Every candidate is reset')
-    console.log('Current player who can vote: ' + (peers.size + 1)) // + 1 to consider myself
+    console.log('Current player who can vote: ' + (state.peers.size + 1)) // + 1 to consider myself
     console.log('Restart the initial state of Start Button...')
-    if (leaver == painter) {
+    if (leaver == state.gameStatus.painter) {
         // do nothing
     } else {
-        scores.set(painter, 0)
-        updateScore(scores)
+        state.gameStatus.scores.set(state.gameStatus.painter, 0)
+        updateScore(state.gameStatus.scores)
     }
     resetStartButton();
     console.log('--------------------------------------')
@@ -910,35 +918,35 @@ function resetVoteSystem(leaver) {
 // This function set your own vote and propagate it to other peers
 function initVote() {
     console.log('-------- Init Vote -----------')
-    isVoted = true
-    isWaitingVote = true
-    numVotes += 1
-    vote = usernames.get(peers.keys().next().value) // first connection
-    if (isInitiator) {
+    state.voteSystem.isVoted = true
+    state.voteSystem.isWaitingVote = true
+    state.voteSystem.numVotes += 1
+    state.voteSystem.vote = state.usernames.get(state.peers.keys().next().value) // first connection
+    if (state.isInitiator) {
         var weigthInit = 2 + 2147483647
-        voteList.set(vote, (voteList.get(vote) + weigthInit))
-        console.log('Current candidates size: ' + voteList.size)
-        console.log('You voted: ' + vote)
+        state.voteSystem.voteList.set(state.voteSystem.vote, (state.voteSystem.voteList.get(state.voteSystem.vote) + weigthInit))
+        console.log('Current candidates size: ' + state.voteSystem.voteList.size)
+        console.log('You voted: ' + state.voteSystem.vote)
         console.log('-------------------------------')
         sendBroadcast({
             type: "votePainter",
-            candidate: vote,
+            candidate: state.voteSystem.vote,
             priority: true,
             weigth: weigthInit,
-            id: peerId,
+            id: state.peerId,
         })
     } else {
-        voteList.set(vote, (voteList.get(vote) + priority))
+        state.voteSystem.voteList.set(state.voteSystem.vote, (state.voteSystem.voteList.get(state.voteSystem.vote) + state.prioritySystem.priority))
 
-        console.log('Current candidates size: ' + voteList.size)
-        console.log('You voted: ' + vote)
+        console.log('Current candidates size: ' + state.voteSystem.voteList.size)
+        console.log('You voted: ' + state.voteSystem.vote)
         console.log('-------------------------------')
         sendBroadcast({
             type: "votePainter",
-            candidate: vote,
+            candidate: state.voteSystem.vote,
             priority: false,
-            weigth: priority,
-            id: peerId,
+            weigth: state.prioritySystem.priority,
+            id: state.peerId,
         })
     }
 
@@ -949,18 +957,18 @@ function initVote() {
 
 // Checking the vote result on the painter voting system
 function checkVoteResults() {
-    if (numVotes >= peers.size + 1) {
+    if (state.voteSystem.numVotes >= state.peers.size + 1) {
         console.log('----------- Vote End -----------')
-        isStarted = true // starting of the game session
-        isVoted = false // ending of the voting session
-        isVotingSession = false // user will not receive vote anymore
+        state.peerStatus.isStarted = true // starting of the game session
+        state.voteSystem.isVoted = false // ending of the voting session
+        state.voteSystem.isVotingSession = false // user will not receive vote anymore
         var max = 0
-        var iteratorVote = voteList.keys()
+        var iteratorVote = state.voteSystem.voteList.keys()
         var winner;
         console.log('Weighted votes:')
-        for (let i = 0; i < voteList.size; i++) {
+        for (let i = 0; i < state.voteSystem.voteList.size; i++) {
             var candidate = iteratorVote.next().value
-            var candidateVote = voteList.get(candidate)
+            var candidateVote = state.voteSystem.voteList.get(candidate)
             console.log('Candidate ' + candidate + ' has ' + candidateVote + ' votes')
             if (candidateVote > max) {
                 max = candidateVote
@@ -968,16 +976,16 @@ function checkVoteResults() {
             }
         }
         console.log('Painter is ' + winner + " with a weighed vote of " + max)
-        painter = winner
+        state.gameStatus.painter = winner
         // Remove painter score from table
         removePainterScore()
         // defines if this peer is the winner or a simple competitor 
-        if (winner == _username) {
+        if (winner == state.username) {
             // you are the winner
             console.log('You are the new painter')
             // setting the initial guess word
-            guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
-            console.log('Guess word is: ' + guessWord)
+            state.gameStatus.guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
+            console.log('Guess word is: ' + state.gameStatus.guessWord)
             updatePainter()
 
         } else {
@@ -992,33 +1000,33 @@ function checkVoteResults() {
 
 // Setting guess word for external use
 function setGuessWord(guess) {
-    guessWord = guess
+    state.gameStatus.guessWord = guess
 }
 
 // Getting guess word for external use
 function getGuessWord() {
-    return guessWord
+    return state.gameStatus.guessWord
 }
 // this function is the game init session on the current peer
 function initGame() {
     console.log('------------- Init the game -------------')
-    console.log(_username + " joining in the game")
+    console.log(state.username + " joining in the game")
     // changing dynamic content
-    initGameContent(_username, roomId)
+    initGameContent(state.username, state.roomId)
     // The player enter in the game mode
-    gameMode = true
+    state.gameStatus.isGameMode = true
     // Adding in the game mode the player 
-    counterGameMode++ // counting the player in the game mode
+    state.gameStatus.counterGameMode++ // counting the player in the game mode
     // Pass to the game view
     toggleGame()
     // Player is joined in the game room
-    isJoined = true
+    state.peerStatus.isJoined = true
     // sending the joining status to all peers
     message = {
         type: "joinGame",
-        username: _username,
+        username: state.username,
         gameMode: true,
-        id: peerId
+        id: state.peerId
     }
     console.log('---------------------------------------')
     sendBroadcast(message)
@@ -1028,14 +1036,14 @@ function initGame() {
 // Setting of the score table on the init of game mode
 function scoreSetting() {
     console.log('------------- Score Settings -------------')
-    if (!isStarted) {
-        var usernamesIterator = usernames.values()
-        voteList.set(_username, 0)
-        for (let i = 0; i < peers.size; i++) {
+    if (!state.peerStatus.isStarted) {
+        var usernamesIterator = state.usernames.values()
+        state.voteSystem.voteList.set(state.username, 0)
+        for (let i = 0; i < state.peers.size; i++) {
             var player = usernamesIterator.next().value
             console.log('Init scores and votes for ' + player)
-            scores.set(player, 0)
-            voteList.set(player, 0)
+            state.gameStatus.scores.set(player, 0)
+            state.voteSystem.voteList.set(player, 0)
         }
     } else {
         console.log('isStarted is true, so the game can not have new entries')
@@ -1044,26 +1052,26 @@ function scoreSetting() {
     console.log('-----------------------------------------')
 }
 
-// Propagate the draw from painter to competitors
+// Propagate the draw from state.gameStatus.painter to competitors
 function propagateDraw(x, y, offsetX, offsetY) {
-    if (painter == _username) {
+    if (state.gameStatus.painter == state.username) {
         sendBroadcast({
             type: "draw",
             x : x,
             y : y,
             offsetX : offsetX,
             offsetY : offsetY,
-            id: peerId,
+            id: state.peerId,
         })
     }
 }
 
 // propagate the clean of paper from painter to competitors
 function propagateClean() {
-    if (painter == _username) {
+    if (state.gameStatus.painter == state.username) {
         sendBroadcast({
             type: "clean",
-            id: peerId,
+            id: state.peerId,
         })
     }
 }
@@ -1071,16 +1079,16 @@ function propagateClean() {
 // Service function to display in the console the own information
 function peerInfo() {
     console.log('------------- Peers info -------------')
-    peersIds = peers.keys()
+    peersIds = state.peers.keys()
     console.log('Peers connected in the same mesh:')
-    for (let i = 0; i < peers.size; i++) {
+    for (let i = 0; i < state.peers.size; i++) {
         var currentId = peersIds.next().value
-        console.log("Peer id" + currentId + " => " + usernames.get(currentId))
-        console.log('Score of ' + usernames.get(currentId) + " is " + scores.get(usernames.get(currentId)))
-        if (voteList.get(usernames.get(currentId)) == undefined) {
-            voteList.set(usernames.get(currentId), 0)
+        console.log("Peer id" + currentId + " => " + state.usernames.get(currentId))
+        console.log('Score of ' + state.usernames.get(currentId) + " is " + state.gameStatus.scores.get(state.usernames.get(currentId)))
+        if (state.voteSystem.voteList.get(state.usernames.get(currentId)) == undefined) {
+            state.voteSystem.voteList.set(state.usernames.get(currentId), 0)
         }
-        console.log('Votes of ' + usernames.get(currentId) + " are " + voteList.get(usernames.get(currentId)))
+        console.log('Votes of ' + state.usernames.get(currentId) + " are " + state.voteSystem.voteList.get(state.usernames.get(currentId)))
     }
     console.log('--------------------------------------')
 
@@ -1088,51 +1096,51 @@ function peerInfo() {
 
 // Setter for isWaitingJoin value for the current peer
 function setWaitingJoin(value) {
-    isWaitingJoin = value
+    state.peerStatus.isWaitingJoin = value
 }
 
 // Manage the leave of a player
 function manageLeave(room, client) {
     console.log('------------ Crash or Leave Management ---------------')
-    var leaver = usernames.get(client)
+    var leaver = state.usernames.get(client)
+    console.log('Leaver is: ', leaver)
     if(leaver == undefined || leaver == null) return 0 // user is not connected
-    console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
     console.log('Client ' + client + " is leaving from room " + room)
     console.log('Current data: ')
-    console.log('Usernames size: ' + usernames.size)
-    console.log('Priorities size: ' + priorities.size)
-    console.log('Peers size: ' + peers.size)
-    console.log('Ids collections length: ' + ids.length)
-    if (gameMode) {
-        console.log('Score size: ' + scores.size)
+    console.log('Usernames size: ' + state.usernames.size)
+    console.log('Priorities size: ' + state.prioritySystem.priorities.size)
+    console.log('state.peers size: ' + state.peers.size)
+    console.log('Ids collections length: ' + state.ids.length)
+    if (state.gameStatus.isGameMode) {
+        console.log('Score size: ' + state.gameStatus.scores.size)
              
     }
-    usernames.delete(client)
-    priorities.delete(client)
-    peers.delete(client)
-    scores.delete(leaver)
-    ids = ids.filter(function (value, index, arr) {
+    state.usernames.delete(client)
+    state.prioritySystem.priorities.delete(client)
+    state.peers.delete(client)
+    state.gameStatus.scores.delete(leaver)
+    state.ids = state.ids.filter(function (value, index, arr) {
         return value != client
     });
     console.log('After delete data: ')
-    console.log('Usernames size: ' + usernames.size)
-    console.log('Priorities size: ' + priorities.size)
-    console.log('Peers size: ' + peers.size)
-    console.log('Ids collections length: ' + ids.length)
+    console.log('Usernames size: ' + state.usernames.size)
+    console.log('Priorities size: ' + state.prioritySystem.priorities.size)
+    console.log('state.peers size: ' + state.peers.size)
+    console.log('Ids collections length: ' + state.ids.length)
     // for the lobby content
-    modifyContentLobby(usernames)
-    if (gameMode) {
+    modifyContentLobby(state.usernames)
+    if (state.gameStatus.isGameMode) {
         // we need to update the game view too
-        scores.delete(leaver)
-        console.log('Score size: ' + scores.size)
+        state.gameStatus.scores.delete(leaver)
+        console.log('Score size: ' + state.gameStatus.scores.size)
         // If the peer waiting to join other peer
-        if (isWaitingJoin) {
-            if ((peers.size + 1) <= counterGameMode && !isStarted) {
+        if (state.peerStatus.isWaitingJoin) {
+            if ((state.peers.size + 1) <= state.gameStatus.counterGameMode && !state.peerStatus.isStarted) {
                 // peers are in the game mode
                 console.log('Game mode: Available')
                 sendBroadcast({
                     type: 'availableGame',
-                    id: peerId,
+                    id: state.peerId,
                 })
                 toggleGameButton(false)
 
@@ -1140,7 +1148,7 @@ function manageLeave(room, client) {
                 toggleGameButton(true)
             }
         }
-        if (peers.size + 1 <= 2) {
+        if (state.peers.size + 1 <= 2) {
             // not enough competitors
             Swal.fire({
                 icon: 'error',
@@ -1150,8 +1158,8 @@ function manageLeave(room, client) {
             })
             cleanLocal()
             toggleHomepage()
-            socket.disconnect()
-            socket = io.connect()
+            state.socket.disconnect()
+            state.socket = io.connect()
             initSocketHandlers()
             disconnectPeer()
             removePeer()
@@ -1160,7 +1168,7 @@ function manageLeave(room, client) {
                 notifyChat('Player ' + leaver + " is leaving the chat")
         }
         // If the peer voted but needs the vote from other peer
-        if (isWaitingVote || (numVotes > 0 && isWaitingVote) || isVotingSession) {
+        if (state.voteSystem.isWaitingVote || (state.voteSystem.numVotes > 0 && state.voteSystem.isWaitingVote) || state.voteSystem.isVotingSession) {
             console.log('Reset vote system')
             // if you press the start game during disconnection
             // every node needs to be reset the vote, that's because
@@ -1169,7 +1177,7 @@ function manageLeave(room, client) {
             resetVoteSystem(leaver) // we need to reset the vote system
         }
         // Competitor is the leaver
-        updateScore(scores)
+        updateScore(state.gameStatus.scores)
     }
     console.log('------------------------------------------------------')
 
@@ -1177,17 +1185,17 @@ function manageLeave(room, client) {
 
 
 function ping() {
-    var connections = peers.values()
+    var connections = state.peers.values()
     console.log('ping!')
-    console.log(peers.size)
+    console.log(state.peers.size)
     if (connections == undefined || connections == null) return 0;
-    for (let i = 0; i < peers.size; i++) {
+    for (let i = 0; i < state.peers.size; i++) {
         var connection = connections.next().value
         console.log('connection:' + connection)
         connection.send({
             type: "ping",
-            username: _username,
-            id: peerId,
+            username: state.username,
+            id: state.peerId,
         })
     }
 
@@ -1195,30 +1203,30 @@ function ping() {
 
 function localState(){
     console.log('--------- Local State Checking --------------')
-    console.log('isStarted value: ' + isStarted)
-    console.log('isJoined value: ' + isJoined)
-    console.log('isGameMode value: ' + gameMode)
-    console.log('isVoted value: ' + isVoted)
-    console.log('isWaitingVote value: ' + isWaitingVote)
-    console.log('isWaitingJoin value: ' + isWaitingJoin)
-    console.log('Number of votes: ' + numVotes)
-    console.log('Current own vote: ' + vote)
-    console.log('isRemoved value: ' + isRemoved)
-    console.log('isInitiator value:'  + isInitiator)
-    console.log('Painter value: ' + painter)
-    console.log('Peers in gameMode: ' + counterGameMode)
-    console.log('Number of peer in the mesh: ' + (peers.size + 1))
-    console.log('Number of peers ids: ' + ids.length)
-    console.log('Scores elements: ' + scores.size)
-    console.log('Usernames size of other peers: '  + usernames.size)
-    console.log('Username of own peers: ' + _username)
-    console.log('Room ID: ' + roomId) 
+    console.log('isStarted value: ' + state.peerStatus.isStarted)
+    console.log('isJoined value: ' + state.peerStatus.isJoined)
+    console.log('isGameMode value: ' + state.gameStatus.isGameMode)
+    console.log('isVoted value: ' + state.voteSystem.isVoted)
+    console.log('state.voteSystem.isWaitingVote value: ' + state.voteSystem.isWaitingVote)
+    console.log('isWaitingJoin value: ' + state.peerStatus.isWaitingJoin)
+    console.log('Number of votes: ' + state.voteSystem.numVotes)
+    console.log('Current own vote: ' + state.voteSystem.vote)
+    console.log('isRemoved value: ' + state.peerStatus.isRemoved)
+    console.log('isInitiator value:'  + state.isInitiator)
+    console.log('Painter value: ' + state.gameStatus.painter)
+    console.log('Peers in gameMode: ' + state.gameStatus.counterGameMode)
+    console.log('Number of peer in the mesh: ' + (state.peers.size + 1))
+    console.log('Number of peers ids: ' + state.ids.length)
+    console.log('Scores elements: ' + state.gameStatus.scores.size)
+    console.log('Usernames size of other peers: '  + state.usernames.size)
+    console.log('Username of own peers: ' + state.username)
+    console.log('Room ID: ' + state.roomId) 
     console.log('---------------------------------------------')
 }
 
 
 function receivePing(data){
-    manageLeave(roomId, data.id)
+    manageLeave(state.roomId, data.id)
 }
 
 /* ----------------- */
@@ -1227,7 +1235,7 @@ function receivePing(data){
 
 window.onbeforeunload = function (e) {
     ping()
-    peer.disconnect()
+    state.peer.disconnect()
 }
 
 

@@ -363,10 +363,6 @@ window.addEventListener('load', (event) => {
 
 
 window.onresize = function(){
-    console.log('--------')
-    console.log($(document).width())
-    console.log($(document).height())
-
     if($(document).width() < 650){
         document.getElementById("background-image").src = "background-mobile.png"
     } else {
