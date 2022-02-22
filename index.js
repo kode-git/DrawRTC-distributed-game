@@ -3,7 +3,11 @@ var http = require("http")
 var os = require('os')
 // Express app for signalling
 var app = express();
+var expressPeerServer = require('peer').ExpressPeerServer
 
+var options = {
+    debug: true
+}
 
 const netInterface = os.networkInterfaces();
 var resultsNet = {}
@@ -20,12 +24,11 @@ for (const name of Object.keys(netInterface)) {
         }
     }
 }
-
-
   
 // the current host IP is
 console.log("Current Public IP host: " + resultsNet[Object.keys(resultsNet)[0]][0])
 const host = resultsNet[Object.keys(resultsNet)[0]][0]
+const port = 3000
 // Using socket.io for signaling in WebRTC
 var socketIO = require("socket.io")
 
@@ -37,10 +40,11 @@ app.get("/", function (request, response) {
     response.render("./index.html");
 })
 var server = http.createServer(app)
+app.use('/peerjs', expressPeerServer(server, options))
 
 // Port of listening
-server.listen(process.env.PORT || 3000, host, () => {
-    console.log(`signaling server is listening on ` + host + "...")
+server.listen(process.env.PORT || port, host, () => {
+    console.log(`signaling server is listening on ` + host + ":" + port + " ...")
 })
 
 // Socket for signalling on the express server

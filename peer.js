@@ -1,10 +1,15 @@
 // using some of the most common STUN Servers to retrieve our public IP and port
+
+const host = "172.20.10.3"
+const port = 3000
+const path = "/peerjs"
+
 const configuration = {
-    'iceServers': [{
-        url: 'turn:turn.anyfirewall.com:443?transport=tcp',
-        credential: 'webrtc',
-        username: 'webrtc'
-    }]
+    'iceServers': [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "turn:0.peerjs.com:3478", username: "peerjs", credential: "peerjsp" }],
+    sdpSemantics: "unified-plan",
+    iceTransportPolicy: "all" // <- it means using only relay server (our free turn server in this case)
 }
 
 // Peer state object for the data management in the peer locally
@@ -256,7 +261,14 @@ function createPeerConnection(id) {
         console.log('Peer already created')
         return 0
     }
-    state.peer = new Peer(id, config = configuration)
+    // state.peer = new Peer(id, config = configuration)
+    state.peer = new Peer(id, {
+        host: host,
+        port: port,
+        path: path,
+        confi: configuration,
+        debug: 3,
+    })
     // Peer handlers 
     // Event handler to check id
     state.peer.on('open', function (id) {
@@ -1101,7 +1113,7 @@ function setWaitingJoin(value) {
 
 // Manage the leave of a player
 function manageLeave(room, client) {
-    console.log('------------ Crash or Leave Management ---------------')
+    console.log('------------ Crash or Disconnect management ---------------')
     var leaver = state.usernames.get(client)
     console.log('Leaver is: ', leaver)
     if(leaver == undefined || leaver == null) return 0 // user is not connected
