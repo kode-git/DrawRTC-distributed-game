@@ -157,6 +157,27 @@ function putPropagatedMessage(avatar, username, message){
     chatContent.scrollTop = chatContent.scrollHeight;
 
 }
+
+// Solve conflict visualization
+function putPropagatedMessages(avatars, usernames, messages, username){
+    // cleaning elements 
+    elements = document.getElementsByClassName('msg')
+    for(let i = 0; i < elements.length; i++){
+        if(elements[i].classList.contains('notify-el')){
+            // do nothing, it is a notify
+        } else {
+            elements[i].remove()
+        }
+    }
+    for(let j = 0; j < usernames.length; j++){
+        if(usernames[j] == username){
+            putMessage(messages[j])
+        } else {
+            putPropagatedMessage(avatars[j], usernames[j], messages[j])
+        }
+    }
+
+}
 // Given the username maps, fill the content with the usernames list
 function modifyContentLobby(usernames) {
     console.log('Updating the content of the username list')
@@ -192,6 +213,7 @@ function notifyEnter(username) {
     var element = document.createElement('div')
     element.classList.add('msg')
     element.classList.add('left-msg')
+    element.classList.add('notify-el')
     element.style.color = "grey"
     var contentElement = document.createTextNode('Player ' + username + " joining in the chat")
     element.appendChild(contentElement)

@@ -6,8 +6,7 @@ const path = "/peerjs"
 
 const configuration = {
     'iceServers': [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "turn:0.peerjs.com:3478", username: "peerjs", credential: "peerjsp" }],
+    { urls: "stun:stun.l.google.com:19302" }],
     sdpSemantics: "unified-plan",
     iceTransportPolicy: "all" // <- it means using only relay server (our free turn server in this case)
 }
@@ -50,6 +49,16 @@ var state = {
     peer: null, // current peer object
 }
 
+// Vector Logic Clock implemented with Hashmap structure
+var vectorClock = new Map()
+
+// chat elements to synchronize in case of happens-before and respect the causal consistency
+var chat = {
+    messages: new Array(),
+    avatars: new Array(),
+    usernames: new Array(),
+}
+
 // Function to reset the variables of the peer which identify a local state to compare with other peers
 // and defines a global one. This function is called only when the peer is forced to disconnect or destroy itself
 function resetVariablesState() {
@@ -73,6 +82,7 @@ function resetVariablesState() {
     state.gameStatus.scores = new Map();
     state.gameStatus.guessWord = null
     state.isInitiator = false;
+    vectorClock = new Map();
 }
 
 // Clean previous session in case of garbage
@@ -273,6 +283,7 @@ function createPeerConnection(id) {
     // Event handler to check id
     state.peer.on('open', function (id) {
         console.log('Open peer: your own id for peer is: ' + id)
+        vectorClock.set(id, 0)
         // Append your username 
         state.prioritySystem.priority = state.peers.size + 1 + randomIntFromInterval(1, 2147483647)
         state.usernames.set(id, state.username)
@@ -284,6 +295,7 @@ function createPeerConnection(id) {
     })
 
     state.peer.on('close', function () {
+        if(state.peer != null)
         state.peer.destroy()
     })
 
@@ -324,7 +336,7 @@ function createPeerConnection(id) {
 
         connection.on('data', function (data) {
             console.log('Data type received: ' + data.type)
-
+            updateVector(data)
             switch (data.type) {
                 case "sendUsername":
                     sendUsernameReceiver(data)
@@ -389,6 +401,7 @@ function addPeerConnection(id) {
 
     connection.on('data', function (data) {
         console.log('Data type received: ' + data.type)
+        updateVector(data)
         switch (data.type) {
             case "sendUsername":
                 sendUsernameSender(data)
@@ -461,9 +474,34 @@ function addPeerConnection(id) {
 /*   Functions for Messages Management    */
 /* -------------------------------------- */
 
+// Updating vector clock for causal consistency
+function updateVector(data){
+    if(data.id == undefined || data.id == null){
+        console.log('Error message')
+    } else {
+        var id = data.id
+        if(vectorClock.get(id) == undefined || vectorClock.get(id) == null){
+            vectorClock.set(data.id, 1)
+        } else {
+            vectorClock.set(data.id, max(vectorClock.get(data.id), data.vector) + 1)
+            console.log(vectorClock)
+        }
+        vectorClock.set(state.peerId, vectorClock.get(state.peerId) + 1)
+    }
+}
+
+// Checking max from two integer
+function max(x, y){
+    return x > y ? x : y
+}
+
+function happensBefore(id){
+    if(vectorClock.get(id) >= vectorClock.get(state.peerId)){
+        return true
+    } else return false
+}
 // sendUsername handler for Sender Peer
 function sendUsernameSender(data) {
-    console.log('------------- Send Username Sender -------------')
     if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
         console.log('Invalid message format')
     } else {
@@ -499,12 +537,10 @@ function sendUsernameSender(data) {
             modifyContentLobby(state.usernames)
         }
     }
-    console.log('------------------------------------------------')
 }
 
 // sendUsername handler for Receiver Peer
 function sendUsernameReceiver(data) {
-    console.log('------------- Send Username Receiver -------------')
     if (data.username == undefined || data.username == "" || data.id == undefined || data.id == "") {
         console.log('Invalid message format')
     } else if (state.peerStatus.isStarted) {
@@ -560,13 +596,11 @@ function sendUsernameReceiver(data) {
             modifyContentLobby(state.usernames)
         }
     }
-    console.log('--------------------------------------------------')
 
 }
 
 // Join game handler for Receiver peer
 function joinGameReceiver(data) {
-    console.log('------------- Join Game on Receiver -------------')
     if (data.username == undefined) {
         console.log('Invalid message format')
     } else {
@@ -583,6 +617,7 @@ function joinGameReceiver(data) {
             sendBroadcast({
                 type: 'availableGame',
                 id: state.peerId,
+                vector: vectorClock.get(state.peerId),
             })
             toggleGameButton(false)
 
@@ -597,12 +632,10 @@ function joinGameReceiver(data) {
         }
         updateScore(state.gameStatus.scores)
     }
-    console.log('--------------------------------------------------')
 }
 
 // Joining game handle for sender peer
 function joinGameSender(data) {
-    console.log('------------- Join Game on Sender -------------')
     if (data.username == undefined) {
         console.log('Invalid message format')
     } else {
@@ -620,6 +653,7 @@ function joinGameSender(data) {
             sendBroadcast({
                 type: 'availableGame',
                 id: state.peerId,
+                vector: vectorClock.get(state.peerId),
             })
             toggleGameButton(false)
 
@@ -634,12 +668,10 @@ function joinGameSender(data) {
         }
         updateScore(state.gameStatus.scores)
     }
-    console.log('-----------------------------------------------')
 }
 
 // Propagation of the vote system on the Painter decision
 function votePainter(data) {
-    console.log('------------------- Vote Painter -------------------')
     if (data.id == null || data.candidate == null || data.candidate == undefined || data.id == undefined) {
         console.log('Illegal format error')
     } else {
@@ -654,7 +686,6 @@ function votePainter(data) {
         // this will be true for every peer except the last one
         checkVoteResults()
     }
-    console.log('------------------------------------------------------')
 }
 
 // Propagation of scores on peers to modify the content (sender is generally the painter)
@@ -670,13 +701,20 @@ function propagateScores(data) {
 
 // send the chat message to other peers
 function propagateChatMessage(avatarNumber, message) {
-    // TO-DO: Test the correct distributed order, may use the timestamp for ordering.
+    // Update the chat state locally
+    chat.avatars.push(avatarNumber)
+    chat.messages.push(message)
+    chat.usernames.push(state.username)
     sendBroadcast({
         type: "sendChatMessage",
         username: state.username,
         content: message,
         avatar: avatarNumber,
         id: state.peerId,
+        vector: vectorClock.get(state.peerId),
+        avatars: chat.avatars,
+        messages: chat.messages,
+        usernames: chat.usernames,
     })
 }
 
@@ -688,12 +726,26 @@ function sendChatMessage(data) {
         || data.avatar == undefined) {
         console.log('Illegal format error')
     } else {
-        if (state.gameStatus.isGameMode)
-            putPropagatedMessage(data.avatar, data.username, data.content)
+        if(!happensBefore(data.id)){
+            if (state.gameStatus.isGameMode) putPropagatedMessage(data.avatar, data.username, data.content)
 
-        if (state.gameStatus.painter != undefined && state.gameStatus.painter != null && state.gameStatus.painter == state.username) {
-            // this is only for the painter view
-            parseGuess(data.username, data.content, state.gameStatus.guessWord)
+            if (state.gameStatus.painter != undefined && state.gameStatus.painter != null && state.gameStatus.painter == state.username) {
+                // this is only for the painter view
+                parseGuess(data.username, data.content, state.gameStatus.guessWord)
+            }       
+        } else {
+            if (state.gameStatus.isGameMode) {
+                // happensBefore violated, repropagation
+                chat.messages = data.messages
+                chat.avatars = data.avatars
+                chat.usernames = data.usernames
+                putPropagatedMessages(chat.avatars, chat.usernames, chat.messages, state.username)
+            }
+            if (state.gameStatus.painter != undefined && state.gameStatus.painter != null && state.gameStatus.painter == state.username) {
+
+                // if the control of previously conflicted messages is negative (no one of the ordered list won)
+                parseGuess(data.username, data.content, state.gameStatus.guessWord)
+            }      
         }
     }
 }
@@ -711,7 +763,7 @@ function guessed(data) {
             // local setting
             state.gameStatus.scores.set(data.player, state.gameStatus.scores.get(data.player) + 1)
             updateScore(state.gameStatus.scores)
-            if (state.gameStatus.scores.get(data.player) == 2) {
+            if (state.gameStatus.scores.get(data.player) == 2) { // To-Do: It is set to 2 instead of 10 for development and testing
                 if (data.player == state.username) {
                     Swal.fire({
                         icon: 'info',
@@ -789,6 +841,8 @@ function sendBroadcast(message) {
         console.log('Broadcast calling for message: ' + message.type)
         console.log('Number of peers to broadcast the message: ' + state.peers.size)
         console.log(state.peers)
+        vectorClock.set(state.peerId, vectorClock.get(state.peerId) + 1)
+        message.vector = vectorClock.get(state.peerId)
         var connections = state.peers.values()
         for (let i = 0; i < state.peers.size; i++) {
             var connection = connections.next().value
@@ -836,11 +890,11 @@ async function parseGuess(username, message, guess) {
             word: guess,
             player: username,
             id: state.peerId,
+            vector: vectorClock.get(state.peerId),
         })
         state.gameStatus.guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
         updateGuessContent(state.gameStatus.guessWord)
-        // TO-DO: Control on winner here and in Guessed function (Change the 2 with 10)
-        if (state.gameStatus.scores.get(username) >= 2) {
+        if (state.gameStatus.scores.get(username) >= 2) { // To-Do: It is 10 but for development and testing is set to 2
             console.log('The player ' + username + " won the game!")
             Swal.fire({
                 icon: 'info',
@@ -853,7 +907,6 @@ async function parseGuess(username, message, guess) {
                 type: "endGame",
                 id: state.peerId,
             })
-            await delay(2000)
             cleanLocal()
             toggleHomepage()
             state.socket.disconnect()
@@ -873,7 +926,7 @@ async function parseGuess(username, message, guess) {
 // Disconnect Peers for every connections he did
 function disconnectPeer() {
     resetVariablesState()
-    state.peer.disconnect()
+    if(state.peer != null) state.peer.disconnect()
     cleanContent()
 
     // Manage connection
@@ -895,6 +948,7 @@ function removePainterScore() {
     sendBroadcast({
         type: "propagateScores",
         id: state.peerId,
+        vector: vectorClock.get(state.peerId),
     })
 }
 
@@ -946,6 +1000,7 @@ function initVote() {
             priority: true,
             weigth: weigthInit,
             id: state.peerId,
+            vector: vectorClock.get(state.peerId),
         })
     } else {
         state.voteSystem.voteList.set(state.voteSystem.vote, (state.voteSystem.voteList.get(state.voteSystem.vote) + state.prioritySystem.priority))
@@ -959,6 +1014,7 @@ function initVote() {
             priority: false,
             weigth: state.prioritySystem.priority,
             id: state.peerId,
+            vector: vectorClock.get(state.peerId),
         })
     }
 
@@ -1074,6 +1130,7 @@ function propagateDraw(x, y, offsetX, offsetY) {
             offsetX : offsetX,
             offsetY : offsetY,
             id: state.peerId,
+            vector: vectorClock.get(state.peerId),
         })
     }
 }
@@ -1084,6 +1141,7 @@ function propagateClean() {
         sendBroadcast({
             type: "clean",
             id: state.peerId,
+            vector: vectorClock.get(state.peerId),
         })
     }
 }
@@ -1153,6 +1211,7 @@ function manageLeave(room, client) {
                 sendBroadcast({
                     type: 'availableGame',
                     id: state.peerId,
+                    vector: vectorClock.get(state.peerId),
                 })
                 toggleGameButton(false)
 
