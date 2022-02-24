@@ -46,18 +46,16 @@ var state = {
     },
     isInitiator: false, // the peer is the creator of the mesh
     socket: io.connect(), // socket for signalling server
+    chat : { // chat elements to synchronize in case of happens-before and respect the causal consistency
+        messages: new Array(),
+        avatars: new Array(),
+        usernames: new Array(),
+    },
+    vectorClock: new Map(), // Vector Logic Clock implemented with Hashmap structure
     peer: null, // current peer object
 }
 
-// Vector Logic Clock implemented with Hashmap structure
-var vectorClock = new Map()
 
-// chat elements to synchronize in case of happens-before and respect the causal consistency
-var chat = {
-    messages: new Array(),
-    avatars: new Array(),
-    usernames: new Array(),
-}
 
 // Function to reset the variables of the peer which identify a local state to compare with other peers
 // and defines a global one. This function is called only when the peer is forced to disconnect or destroy itself
@@ -283,7 +281,7 @@ function createPeerConnection(id) {
     // Event handler to check id
     state.peer.on('open', function (id) {
         console.log('Open peer: your own id for peer is: ' + id)
-        vectorClock.set(id, 0)
+        state.vectorClock.set(id, 0)
         // Append your username 
         state.prioritySystem.priority = state.peers.size + 1 + randomIntFromInterval(1, 2147483647)
         state.usernames.set(id, state.username)
@@ -401,6 +399,7 @@ function addPeerConnection(id) {
 
     connection.on('data', function (data) {
         console.log('Data type received: ' + data.type)
+        console.log(state)
         updateVector(data)
         switch (data.type) {
             case "sendUsername":
@@ -480,13 +479,13 @@ function updateVector(data){
         console.log('Error message')
     } else {
         var id = data.id
-        if(vectorClock.get(id) == undefined || vectorClock.get(id) == null){
-            vectorClock.set(data.id, 1)
+        if(state.vectorClock.get(id) == undefined || state.vectorClock.get(id) == null){
+            state.vectorClock.set(data.id, 1)
         } else {
-            vectorClock.set(data.id, max(vectorClock.get(data.id), data.vector) + 1)
-            console.log(vectorClock)
+            state.vectorClock.set(data.id, max(state.vectorClock.get(data.id), data.vector) + 1)
+            console.log(state.vectorClock)
         }
-        vectorClock.set(state.peerId, vectorClock.get(state.peerId) + 1)
+        state.vectorClock.set(state.peerId, state.vectorClock.get(state.peerId) + 1)
     }
 }
 
@@ -496,7 +495,7 @@ function max(x, y){
 }
 
 function happensBefore(id){
-    if(vectorClock.get(id) >= vectorClock.get(state.peerId)){
+    if(state.vectorClock.get(id) >= state.vectorClock.get(state.peerId)){
         return true
     } else return false
 }
@@ -617,7 +616,7 @@ function joinGameReceiver(data) {
             sendBroadcast({
                 type: 'availableGame',
                 id: state.peerId,
-                vector: vectorClock.get(state.peerId),
+                vector: state.vectorClock.get(state.peerId),
             })
             toggleGameButton(false)
 
@@ -653,7 +652,7 @@ function joinGameSender(data) {
             sendBroadcast({
                 type: 'availableGame',
                 id: state.peerId,
-                vector: vectorClock.get(state.peerId),
+                vector: state.vectorClock.get(state.peerId),
             })
             toggleGameButton(false)
 
@@ -702,19 +701,19 @@ function propagateScores(data) {
 // send the chat message to other peers
 function propagateChatMessage(avatarNumber, message) {
     // Update the chat state locally
-    chat.avatars.push(avatarNumber)
-    chat.messages.push(message)
-    chat.usernames.push(state.username)
+    state.chat.avatars.push(avatarNumber)
+    state.chat.messages.push(message)
+    state.chat.usernames.push(state.username)
     sendBroadcast({
         type: "sendChatMessage",
         username: state.username,
         content: message,
         avatar: avatarNumber,
         id: state.peerId,
-        vector: vectorClock.get(state.peerId),
-        avatars: chat.avatars,
-        messages: chat.messages,
-        usernames: chat.usernames,
+        vector: state.vectorClock.get(state.peerId),
+        avatars: state.chat.avatars,
+        messages: state.chat.messages,
+        usernames: state.chat.usernames,
     })
 }
 
@@ -736,10 +735,10 @@ function sendChatMessage(data) {
         } else {
             if (state.gameStatus.isGameMode) {
                 // happensBefore violated, repropagation
-                chat.messages = data.messages
-                chat.avatars = data.avatars
-                chat.usernames = data.usernames
-                putPropagatedMessages(chat.avatars, chat.usernames, chat.messages, state.username)
+                state.chat.messages = data.messages
+                state.chat.avatars = data.avatars
+                state.chat.usernames = data.usernames
+                putPropagatedMessages(state.chat.avatars, state.chat.usernames, state.chat.messages, state.username)
             }
             if (state.gameStatus.painter != undefined && state.gameStatus.painter != null && state.gameStatus.painter == state.username) {
 
@@ -841,8 +840,8 @@ function sendBroadcast(message) {
         console.log('Broadcast calling for message: ' + message.type)
         console.log('Number of peers to broadcast the message: ' + state.peers.size)
         console.log(state.peers)
-        vectorClock.set(state.peerId, vectorClock.get(state.peerId) + 1)
-        message.vector = vectorClock.get(state.peerId)
+        state.vectorClock.set(state.peerId, state.vectorClock.get(state.peerId) + 1)
+        message.vector = state.vectorClock.get(state.peerId)
         var connections = state.peers.values()
         for (let i = 0; i < state.peers.size; i++) {
             var connection = connections.next().value
@@ -890,7 +889,7 @@ async function parseGuess(username, message, guess) {
             word: guess,
             player: username,
             id: state.peerId,
-            vector: vectorClock.get(state.peerId),
+            vector: state.vectorClock.get(state.peerId),
         })
         state.gameStatus.guessWord = guessWords[randomIntFromInterval(0, guessWords.length - 1)]
         updateGuessContent(state.gameStatus.guessWord)
@@ -948,7 +947,7 @@ function removePainterScore() {
     sendBroadcast({
         type: "propagateScores",
         id: state.peerId,
-        vector: vectorClock.get(state.peerId),
+        vector: state.vectorClock.get(state.peerId),
     })
 }
 
@@ -1000,7 +999,7 @@ function initVote() {
             priority: true,
             weigth: weigthInit,
             id: state.peerId,
-            vector: vectorClock.get(state.peerId),
+            vector: state.vectorClock.get(state.peerId),
         })
     } else {
         state.voteSystem.voteList.set(state.voteSystem.vote, (state.voteSystem.voteList.get(state.voteSystem.vote) + state.prioritySystem.priority))
@@ -1014,7 +1013,7 @@ function initVote() {
             priority: false,
             weigth: state.prioritySystem.priority,
             id: state.peerId,
-            vector: vectorClock.get(state.peerId),
+            vector: state.vectorClock.get(state.peerId),
         })
     }
 
@@ -1130,7 +1129,7 @@ function propagateDraw(x, y, offsetX, offsetY) {
             offsetX : offsetX,
             offsetY : offsetY,
             id: state.peerId,
-            vector: vectorClock.get(state.peerId),
+            vector: state.vectorClock.get(state.peerId),
         })
     }
 }
@@ -1141,7 +1140,7 @@ function propagateClean() {
         sendBroadcast({
             type: "clean",
             id: state.peerId,
-            vector: vectorClock.get(state.peerId),
+            vector: state.vectorClock.get(state.peerId),
         })
     }
 }
@@ -1211,7 +1210,7 @@ function manageLeave(room, client) {
                 sendBroadcast({
                     type: 'availableGame',
                     id: state.peerId,
-                    vector: vectorClock.get(state.peerId),
+                    vector: state.vectorClock.get(state.peerId),
                 })
                 toggleGameButton(false)
 
