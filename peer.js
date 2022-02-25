@@ -725,9 +725,13 @@ function sendChatMessage(data) {
         || data.avatar == undefined) {
         console.log('Illegal format error')
     } else {
-        if(!happensBefore(data.id)){
-            if (state.gameStatus.isGameMode) putPropagatedMessage(data.avatar, data.username, data.content)
-
+        if(happensBefore(data.id)){
+            if (state.gameStatus.isGameMode) {
+                state.chat.messages.push(data.content)
+                state.chat.messages.push(data.avatar)
+                state.chat.usernames.push(data.username)
+                putPropagatedMessage(data.avatar, data.username, data.content)
+            }
             if (state.gameStatus.painter != undefined && state.gameStatus.painter != null && state.gameStatus.painter == state.username) {
                 // this is only for the painter view
                 parseGuess(data.username, data.content, state.gameStatus.guessWord)
