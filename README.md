@@ -1,7 +1,7 @@
 # Quick, DrawRTC!
 <p>
   <img src="https://img.shields.io/badge/build-passed-green" alt="alternatetext">
-  <img src="https://img.shields.io/badge/status- dev-yellow" alt="alternatetext">
+  <img src="https://img.shields.io/badge/status- complete-green" alt="alternatetext">
   <img src="https://img.shields.io/badge/version-1.0%20-blue" alt="alternatetext">
   <img src="https://img.shields.io/badge/Framework-WebRTC-orange" alt="alternatetext">
   <img src="https://img.shields.io/badge/Language-Javascript-red" alt="alternatetext">
